@@ -12,15 +12,20 @@
 #include <string>
 #include <vector>
 
-class Coin;
+#include <boost/uuid/uuid.hpp>
+
+#include "Coin.hpp"
 
 class Account {
 public:
-
+  // no constructors that don't create a new id
+  Account() = delete;
+  Account(const Account&) = delete;
+  Account& operator=(const Account&) = delete;
 
 private:
   // unique global identifier of this account
-  const size_t id_;
+  const boost::uuids::uuid id_;
 
   // name of this account
   std::string name_;
@@ -31,16 +36,16 @@ private:
 
   // the parent of this account, the only accounts that have no parent are the
   // special Asset, Liability, Income, Expense, Equity accounts
-  Account * parent_;
+  const Account * parent_;
 
   // child accounts whose parent account is this account
-  std::vector<Account*> children_;
+  std::vector<const Account*> children_;
 
   // true if this account only has transactions in a single coin
   bool single_coin_;
 
   // if this is a single coin account, this is the coin used in this account
-  Coin * coin_;
+  const Coin * coin_;
 };
 
 #endif // SRC_ACCOUNT_HPP_

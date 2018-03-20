@@ -31,6 +31,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 # add the source directory to the include list
 include_directories(${CoinLedger_SOURCE_DIR}/src)
 
+# we need Boost
+find_package(Boost REQUIRED uuid)
+set(SKYNET_EXTERNAL_LIBS "${SKYNET_EXTERNAL_LIBS};${Boost_LIBRARIES}")
+include_directories(${Boost_INCLUDE_DIRS})
+
 macro(add_CoinLedger_library library sources)
   add_library(${library} OBJECT ${sources})
   set(COINLEDGER_LIBS "${COINLEDGER_LIBS};$<TARGET_OBJECTS:${library}>" PARENT_SCOPE)
