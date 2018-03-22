@@ -11,10 +11,11 @@
 
 #include <boost/uuid/uuid.hpp>
 
-#include "Account.hpp"
 #include "Amount.hpp"
 #include "Coin.hpp"
-#include "Transaction.hpp"
+
+class Account;
+class Transaction;
 
 class Split {
 private:

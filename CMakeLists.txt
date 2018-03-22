@@ -28,13 +28,21 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 # to make shared libraries we need position independent code
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 
+# enable writing compile_command.json
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # add the source directory to the include list
 include_directories(${CoinLedger_SOURCE_DIR}/src)
 
 # we need Boost
-find_package(Boost REQUIRED uuid)
-set(SKYNET_EXTERNAL_LIBS "${SKYNET_EXTERNAL_LIBS};${Boost_LIBRARIES}")
+find_package(Boost REQUIRED)
+set(COINLEDGER_EXTERNAL_LIBS "${COINLEDGER_EXTERNAL_LIBS};${Boost_LIBRARIES}")
 include_directories(${Boost_INCLUDE_DIRS})
+
+# we need CURLpp
+find_package(CURLPP REQUIRED)
+set(COINLEDGER_EXTERNAL_LIBS "${COINLEDGER_EXTERNAL_LIBS};${CURLPP_LIBRARIES}")
+include_directories(${CURLPP_INCLUDE_DIRS})
 
 macro(add_CoinLedger_library library sources)
   add_library(${library} OBJECT ${sources})
@@ -60,6 +68,8 @@ add_library(CoinLedger_static
 add_library(CoinLedger SHARED
   ${COINLEDGER_LIBS}
 )
+
+add_subdirectory(bin)
 
 # create SWIG Python bindings
 if(USE_SWIG)

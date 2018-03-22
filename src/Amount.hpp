@@ -9,6 +9,10 @@
 #ifndef SRC_AMOUNT_HPP_
 #define SRC_AMOUNT_HPP_
 
+#include <cstdint>
+
+typedef uint32_t uint;
+
 namespace {
 
 constexpr uint64_t ipow_(uint base, uint exp) {
@@ -22,7 +26,7 @@ template<uint D>
 class FixedPoint10 {
   static_assert(D < 17, "FixedPoint10 can have at most 17 digits");
 public:
-  constexpr uint64_t Denominator = ipow_(10, D);
+  static constexpr uint64_t Denominator = ipow_(10, D);
 
 private:
   int64_t val_;

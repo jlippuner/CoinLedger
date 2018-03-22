@@ -12,9 +12,10 @@
 #include <string>
 #include <vector>
 
-#include <boost/uuid/uuid.hpp>
-
 #include "Coin.hpp"
+#include "UUID.hpp"
+
+class File;
 
 class Account {
 public:
@@ -23,9 +24,27 @@ public:
   Account(const Account&) = delete;
   Account& operator=(const Account&) = delete;
 
+  Account(Account&&) = default;
+
+  static Account& Create(File* file, std::string name, bool placeholder,
+      const Account * parent, bool single_coin, const Coin * coin = nullptr);
+
+  uuid_t Id() const {
+    return id_;
+  }
+
 private:
+  Account(uuid_t id, std::string name, bool placeholder, const Account * parent,
+      bool single_coin, const Coin * coin = nullptr) :
+      id_(id),
+      name_(name),
+      placeholder_(placeholder),
+      parent_(parent),
+      single_coin_(single_coin),
+      coin_(coin) { }
+
   // unique global identifier of this account
-  const boost::uuids::uuid id_;
+  const uuid_t id_;
 
   // name of this account
   std::string name_;
@@ -38,14 +57,15 @@ private:
   // special Asset, Liability, Income, Expense, Equity accounts
   const Account * parent_;
 
-  // child accounts whose parent account is this account
-  std::vector<const Account*> children_;
-
   // true if this account only has transactions in a single coin
   bool single_coin_;
 
   // if this is a single coin account, this is the coin used in this account
   const Coin * coin_;
+
+  // child accounts whose parent account is this account
+  std::vector<const Account*> children_;
+
 };
 
 #endif // SRC_ACCOUNT_HPP_

@@ -10,11 +10,13 @@
 #define SRC_TRANSACTION_HPP_
 
 #include <string>
+#include <vector>
 
 #include <boost/uuid/uuid.hpp>
 
 #include "Datetime.hpp"
-#include "Split.hpp"
+
+class Split;
 
 class Transaction {
 public:
@@ -34,7 +36,11 @@ private:
   std::string description_;
 
   // the splits that make up this transaction
-  std::vector<Split> splits_;
+  std::vector<Split*> splits_;
+
+  // if this transaction is important from an external source, an import ID can
+  // be stored here in order to avoid duplicate imports
+  std::string import_id_;
 };
 
 #endif // SRC_TRANSACTION_HPP_
