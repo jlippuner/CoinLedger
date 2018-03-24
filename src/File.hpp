@@ -44,6 +44,18 @@ public:
     return generator_();
   }
 
+  void AddCoin(Coin && coin) {
+    coins_.emplace(coin.Id(), std::move(coin));
+  }
+
+  std::unordered_map<std::string, Coin>& Coins() {
+    return coins_;
+  }
+
+  const std::unordered_map<std::string, Coin>& Coins() const {
+    return coins_;
+  }
+
   void AddAccount(Account && account) {
     accounts_.emplace(account.Id(), std::move(account));
   }
@@ -57,10 +69,10 @@ public:
   }
 
 private:
-  File();
+  File() {}
 
   // all the known coins
-  UUIDMap<Coin> coins_;
+  std::unordered_map<std::string, Coin> coins_;
 
   // all accounts
   UUIDMap<Account> accounts_;

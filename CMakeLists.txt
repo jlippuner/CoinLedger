@@ -44,6 +44,11 @@ find_package(CURLPP REQUIRED)
 set(COINLEDGER_EXTERNAL_LIBS "${COINLEDGER_EXTERNAL_LIBS};${CURLPP_LIBRARIES}")
 include_directories(${CURLPP_INCLUDE_DIRS})
 
+# we need JSONCPP
+find_package(JSONCPP REQUIRED)
+set(COINLEDGER_EXTERNAL_LIBS "${COINLEDGER_EXTERNAL_LIBS};${JSONCPP_LIBRARIES}")
+include_directories(${JSONCPP_INCLUDE_DIRS})
+
 macro(add_CoinLedger_library library sources)
   add_library(${library} OBJECT ${sources})
   set(COINLEDGER_LIBS "${COINLEDGER_LIBS};$<TARGET_OBJECTS:${library}>" PARENT_SCOPE)

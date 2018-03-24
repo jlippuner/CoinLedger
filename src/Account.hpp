@@ -27,7 +27,8 @@ public:
   Account(Account&&) = default;
 
   static Account& Create(File* file, std::string name, bool placeholder,
-      const Account * parent, bool single_coin, const Coin * coin = nullptr);
+      const Account * parent, bool single_coin,
+      const Coin * coin = nullptr);
 
   uuid_t Id() const {
     return id_;

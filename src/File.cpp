@@ -8,6 +8,8 @@
 
 #include "File.hpp"
 
+#include "PriceSource.hpp"
+
 File File::InitNewFile() {
   File file;
 
@@ -19,7 +21,7 @@ File File::InitNewFile() {
   Account::Create(&file, "Equity",      true, nullptr, false);
 
   // add all known coins
-  // TODO
+  PriceSource::AddAllCoins(&file);
 
   return file;
 }

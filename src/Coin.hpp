@@ -13,12 +13,50 @@
 
 #include <boost/uuid/uuid.hpp>
 
+class File;
+
 // Represents a cryptocurrency or a fiat currency
 
 class Coin {
+public:
+  // no constructors that don't create a new id
+  Coin() = delete;
+  Coin(const Coin&) = delete;
+  Coin& operator=(const Coin&) = delete;
+
+  Coin(Coin&&) = default;
+
+  static Coin& Create(File* file, std::string id, std::string name,
+      std::string symbol);
+
+  std::string Id() const {
+    return id_;
+  }
+
+  const std::string& Name() const {
+    return name_;
+  }
+
+  std::string& Name() {
+    return name_;
+  }
+
+  const std::string& Symbol() const {
+    return symbol_;
+  }
+
+  std::string& Symbol() {
+    return symbol_;
+  }
+
 private:
+  Coin(std::string id, std::string name, std::string symbol):
+    id_(id),
+    name_(name),
+    symbol_(symbol) {}
+
   // unique global identifier of this coin
-  const boost::uuids::uuid id_;
+  const std::string id_;
 
   // name of this coin
   std::string name_;
