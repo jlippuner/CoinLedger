@@ -26,12 +26,22 @@ public:
 
   Account(Account&&) = default;
 
-  static Account& Create(File* file, std::string name, bool placeholder,
+  static Account* Create(File* file, std::string name, bool placeholder,
       const Account * parent, bool single_coin,
       const Coin * coin = nullptr);
 
   uuid_t Id() const {
     return id_;
+  }
+
+  std::string Name() const {
+    return name_;
+  }
+
+  static std::string MakeFullName(const Account * parent, std::string name);
+
+  std::string FullName() const {
+    return MakeFullName(parent_, name_);
   }
 
 private:

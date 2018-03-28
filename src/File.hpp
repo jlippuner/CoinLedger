@@ -57,6 +57,10 @@ public:
   }
 
   void AddAccount(Account && account) {
+    // do this first! after moving account, the full name and id will no
+    // longer be available
+    accounts_by_fullname_.insert({{ account.FullName(), account.Id() }});
+
     accounts_.emplace(account.Id(), std::move(account));
   }
 
@@ -68,6 +72,10 @@ public:
     return accounts_;
   }
 
+  const std::unordered_map<std::string, uuid_t>& Accounts_by_fullname() const {
+    return accounts_by_fullname_;
+  }
+
 private:
   File() {}
 
@@ -76,6 +84,9 @@ private:
 
   // all accounts
   UUIDMap<Account> accounts_;
+
+  // map of full account names (parent::parent::account) vs. account id
+  std::unordered_map<std::string, uuid_t> accounts_by_fullname_;
 
   // all transactions
   UUIDMap<Transaction> transactions_;
