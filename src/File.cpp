@@ -8,6 +8,8 @@
 
 #include "File.hpp"
 
+#include <stdexcept>
+
 #include <sqlite3.h>
 
 #include "PriceSource.hpp"
@@ -37,6 +39,14 @@ inline int sqlite3_bind_str(sqlite3_stmt * stmt, int pos,
   return sqlite3_bind_text(stmt, pos, str.c_str(), -1, SQLITE_TRANSIENT);
 }
 
+inline std::string sqlite3_column_str(sqlite3_stmt * stmt, int iCol) {
+  const unsigned char * ptr = sqlite3_column_text(stmt, iCol);
+  if (ptr == nullptr)
+    return "";
+  else
+    return std::string((const char*)ptr);
+}
+
 File File::InitNewFile() {
   File file;
 
@@ -53,16 +63,138 @@ File File::InitNewFile() {
   return file;
 }
 
-#define SQL3_FAIL return
-void File::Save(const std::string path) const {
+#define SQL3_FAIL throw std::runtime_error("Could not open file " + path)
+File File::Open(const std::string& path) {
+  File file;
+
   sqlite3 * db = nullptr;
-  if (sqlite3_open(path.c_str(), &db) != SQLITE_OK) {
+  if (sqlite3_open_v2(path.c_str(), &db, SQLITE_OPEN_READONLY, nullptr)
+      != SQLITE_OK) {
+    printf("ERROR: Could not open file '%s' for reading: %s\n", path.c_str(),
+        sqlite3_errmsg(db));
+    {SQL3_FAIL;}
+  }
+
+  // read coins
+  {
+    sqlite3_stmt * stmt = nullptr;
+    SQL3(db, sqlite3_prepare_v2(db, "SELECT * FROM coins;", -1, &stmt,
+        nullptr));
+
+    int res = sqlite3_step(stmt);
+    while (res == SQLITE_ROW) {
+      std::string id = sqlite3_column_str(stmt, 0);
+      std::string name = sqlite3_column_str(stmt, 1);
+      std::string symbol = sqlite3_column_str(stmt, 2);
+
+      file.coins_.emplace(id, Coin(id, name, symbol));
+      res = sqlite3_step(stmt);
+    }
+    if (res != SQLITE_DONE) SQL3(db, res);
+    SQL3(db, sqlite3_finalize(stmt));
+  }
+
+  // read accounts
+  {
+    sqlite3_stmt * stmt = nullptr;
+    SQL3(db, sqlite3_prepare_v2(db, "SELECT * FROM accounts;", -1, &stmt,
+        nullptr));
+
+    int res = sqlite3_step(stmt);
+    while (res == SQLITE_ROW) {
+      uuid_t id = sqlite3_column_uuid(stmt, 0);
+      std::string name = sqlite3_column_str(stmt, 1);
+      bool placeholder = (bool)sqlite3_column_int(stmt, 2);
+      uuid_t parent_id = sqlite3_column_uuid(stmt, 3);
+      bool single_coin = (bool)sqlite3_column_int(stmt, 4);
+      std::string coin_id = sqlite3_column_str(stmt, 5);
+
+      const Account * parent = nullptr;
+      const Coin * coin = nullptr;
+
+      if (!parent_id.is_nil())
+        parent = &file.accounts_.at(parent_id);
+
+      if (single_coin) {
+        if (coin_id == "")
+          throw std::runtime_error("Account " + name + " has single_coin but "
+              "no coin is set");
+        coin = &file.coins_.at(coin_id);
+      }
+
+      file.accounts_.emplace(id, Account(id, name, placeholder, parent,
+          single_coin, coin));
+      res = sqlite3_step(stmt);
+    }
+    if (res != SQLITE_DONE) SQL3(db, res);
+    SQL3(db, sqlite3_finalize(stmt));
+  }
+
+  // read transactions
+  {
+    sqlite3_stmt * stmt = nullptr;
+    SQL3(db, sqlite3_prepare_v2(db, "SELECT * FROM transactions;", -1, &stmt,
+        nullptr));
+
+    int res = sqlite3_step(stmt);
+    while (res == SQLITE_ROW) {
+      uuid_t id = sqlite3_column_uuid(stmt, 0);
+      Datetime date = sqlite3_column_datetime(stmt, 1);
+      std::string description = sqlite3_column_str(stmt, 2);
+      std::string import_id = sqlite3_column_str(stmt, 3);
+
+      file.transactions_.emplace(id, Transaction(id, date, description,
+          import_id));
+      res = sqlite3_step(stmt);
+    }
+    if (res != SQLITE_DONE) SQL3(db, res);
+    SQL3(db, sqlite3_finalize(stmt));
+  }
+
+  // read splits
+  {
+    sqlite3_stmt * stmt = nullptr;
+    SQL3(db, sqlite3_prepare_v2(db, "SELECT * FROM splits;", -1, &stmt,
+        nullptr));
+
+    int res = sqlite3_step(stmt);
+    while (res == SQLITE_ROW) {
+      uuid_t id = sqlite3_column_uuid(stmt, 0);
+      uuid_t transaction_id = sqlite3_column_uuid(stmt, 1);
+      uuid_t account_id = sqlite3_column_uuid(stmt, 2);
+      std::string memo = sqlite3_column_str(stmt, 3);
+      Amount amount = Amount::FromRaw(sqlite3_column_int64(stmt, 4));
+      std::string coin_id = sqlite3_column_str(stmt, 5);
+
+      auto transaction = &file.transactions_.at(transaction_id);
+      auto account = &file.accounts_.at(account_id);
+      auto coin = &file.coins_.at(coin_id);
+
+      auto iter = file.splits_.emplace(id, Split(id, transaction, account,
+          memo, amount, coin));
+      transaction->AddSplit(&iter.first->second);
+      res = sqlite3_step(stmt);
+    }
+    if (res != SQLITE_DONE) SQL3(db, res);
+    SQL3(db, sqlite3_finalize(stmt));
+  }
+
+  SQL3(db, sqlite3_close_v2(db));
+  return file;
+}
+#undef SQL3_FAIL
+
+#define SQL3_FAIL return
+void File::Save(const std::string& path) const {
+  sqlite3 * db = nullptr;
+  if (sqlite3_open_v2(path.c_str(), &db,
+      SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) != SQLITE_OK) {
     printf("ERROR: Could not open file '%s' for writing: %s\n", path.c_str(),
         sqlite3_errmsg(db));
     return;
   }
 
-  // Create tables
+  // create tables
   {
     SQL3_EXEC(db, R"(
         CREATE TABLE coins (
@@ -130,16 +262,13 @@ void File::Save(const std::string path) const {
       SQL3(db, sqlite3_bind_str(stmt, 3, c.Symbol()));
 
       // execute the statement
-      if (sqlite3_step(stmt) != SQLITE_DONE) {
-        printf("ERROR: SQL error when inserting coin: %s\n",
-            sqlite3_errmsg(db));
-        return;
-      }
+      int res = sqlite3_step(stmt);
+      if (res != SQLITE_DONE) SQL3(db, res);
     }
 
     SQL3_EXEC(db, "END TRANSACTION;", nullptr, nullptr);
 
-    sqlite3_finalize(stmt);
+    SQL3(db, sqlite3_finalize(stmt));
   }
 
   // write accounts
@@ -182,16 +311,13 @@ void File::Save(const std::string path) const {
       }
 
       // execute the statement
-      if (sqlite3_step(stmt) != SQLITE_DONE) {
-        printf("ERROR: SQL error when inserting account: %s\n",
-            sqlite3_errmsg(db));
-        return;
-      }
+      int res = sqlite3_step(stmt);
+      if (res != SQLITE_DONE) SQL3(db, res);
     }
 
     SQL3_EXEC(db, "END TRANSACTION;", nullptr, nullptr);
 
-    sqlite3_finalize(stmt);
+    SQL3(db, sqlite3_finalize(stmt));
   }
 
   // write transactions
@@ -216,22 +342,18 @@ void File::Save(const std::string path) const {
       // bind values to statement
 
       SQL3(db, sqlite3_bind_uuid(stmt, 1, t.Id()));
-      SQL3(db, sqlite3_bind_blob(stmt, 2, t.Date().Raw(), t.Date().size(),
-          SQLITE_TRANSIENT));
+      SQL3(db, sqlite3_bind_datetime(stmt, 2, t.Date()));
       SQL3(db, sqlite3_bind_str(stmt, 3, t.Description()));
       SQL3(db, sqlite3_bind_str(stmt, 4, t.Import_id()));
 
       // execute the statement
-      if (sqlite3_step(stmt) != SQLITE_DONE) {
-        printf("ERROR: SQL error when inserting transaction: %s\n",
-            sqlite3_errmsg(db));
-        return;
-      }
+      int res = sqlite3_step(stmt);
+      if (res != SQLITE_DONE) SQL3(db, res);
     }
 
     SQL3_EXEC(db, "END TRANSACTION;", nullptr, nullptr);
 
-    sqlite3_finalize(stmt);
+    SQL3(db, sqlite3_finalize(stmt));
   }
 
   // write splits
@@ -263,17 +385,15 @@ void File::Save(const std::string path) const {
       SQL3(db, sqlite3_bind_str(stmt, 6, s.GetCoin()->Id()));
 
       // execute the statement
-      if (sqlite3_step(stmt) != SQLITE_DONE) {
-        printf("ERROR: SQL error when inserting split: %s\n",
-            sqlite3_errmsg(db));
-        return;
-      }
+      int res = sqlite3_step(stmt);
+      if (res != SQLITE_DONE) SQL3(db, res);
     }
 
     SQL3_EXEC(db, "END TRANSACTION;", nullptr, nullptr);
 
-    sqlite3_finalize(stmt);
+    SQL3(db, sqlite3_finalize(stmt));
   }
 
-  sqlite3_close(db);
+  SQL3(db, sqlite3_close_v2(db));
 }
+#undef SQL3_FAIL

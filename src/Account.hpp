@@ -44,6 +44,8 @@ public:
   }
 
 private:
+  friend class File;
+
   Account(uuid_t id, std::string name, bool placeholder, const Account * parent,
       bool single_coin, const Coin * coin = nullptr) :
       id_(id),

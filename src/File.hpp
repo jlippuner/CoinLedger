@@ -35,16 +35,16 @@ class File {
 public:
   static File InitNewFile();
 
-  static File Open(const std::string path);
+  static File Open(const std::string& path);
 
-  void Save(const std::string path) const;
+  void Save(const std::string& path) const;
 
   boost::uuids::uuid GetUUID() {
     return generator_();
   }
 
-  void AddCoin(Coin && coin) {
-    coins_.emplace(coin.Id(), std::move(coin));
+  auto AddCoin(Coin && coin) {
+    return coins_.emplace(coin.Id(), std::move(coin));
   }
 
   std::unordered_map<std::string, Coin>& Coins() {
@@ -55,12 +55,12 @@ public:
     return coins_;
   }
 
-  void AddAccount(Account && account) {
+  auto AddAccount(Account && account) {
     // do this first! after moving account, the full name and id will no
     // longer be available
     accounts_by_fullname_.insert({{ account.FullName(), account.Id() }});
 
-    accounts_.emplace(account.Id(), std::move(account));
+    return accounts_.emplace(account.Id(), std::move(account));
   }
 
   UUIDMap<Account>& Accounts() {

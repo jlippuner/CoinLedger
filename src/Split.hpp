@@ -23,6 +23,8 @@ public:
   Split(const Split&) = delete;
   Split& operator=(const Split&) = delete;
 
+  Split(Split&&) = default;
+
   uuid_t Id() const { return id_; }
   const Transaction * GetTransaction() const { return transaction_; }
   const Account * GetAccount() const { return account_; }
@@ -31,6 +33,17 @@ public:
   const Coin * GetCoin() const { return coin_; }
 
 private:
+  friend class File;
+
+  Split(uuid_t id, const Transaction * transaction, const Account * account,
+      std::string memo, Amount amount, const Coin * coin):
+      id_(id),
+      transaction_(transaction),
+      account_(account),
+      memo_(memo),
+      amount_(amount),
+      coin_(coin) {}
+
   // unique global identifier of this split
   const uuid_t id_;
 

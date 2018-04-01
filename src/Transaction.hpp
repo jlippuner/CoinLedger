@@ -24,6 +24,8 @@ public:
   Transaction(const Transaction&) = delete;
   Transaction& operator=(const Transaction&) = delete;
 
+  Transaction(Transaction&&) = default;
+
   uuid_t Id() const { return id_; }
   Datetime Date() const { return date_; }
   const std::string& Description() const { return description_; }
@@ -31,6 +33,19 @@ public:
   const std::vector<Split*>& Splits() const { return splits_; }
 
 private:
+  friend class File;
+
+  Transaction(uuid_t id, Datetime date, std::string description,
+      std::string import_id) :
+      id_(id),
+      date_(date),
+      description_(description),
+      import_id_(import_id) {}
+
+  void AddSplit(Split * split) {
+    splits_.push_back(split);
+  }
+
   // unique global identifier of this transaction
   const uuid_t id_;
 

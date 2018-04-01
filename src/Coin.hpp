@@ -26,7 +26,7 @@ public:
 
   Coin(Coin&&) = default;
 
-  static Coin& Create(File* file, std::string id, std::string name,
+  static Coin* Create(File* file, std::string id, std::string name,
       std::string symbol);
 
   std::string Id() const { return id_; }
@@ -34,6 +34,8 @@ public:
   const std::string& Symbol() const { return symbol_; }
 
 private:
+  friend class File;
+
   Coin(std::string id, std::string name, std::string symbol):
     id_(id),
     name_(name),

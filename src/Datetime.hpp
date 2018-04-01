@@ -10,19 +10,48 @@
 #define SRC_DATETIME_HPP_
 
 #include <ctime>
+#include <stdexcept>
+
+#include <sqlite3.h>
 
 // Represents a point in time. The resolution is seconds and internally the date
 // and time are stored as a unix timestamp in UTC
 
 class Datetime {
 public:
-  Datetime() = delete;
+  static Datetime FromRaw(const void* ptr) {
+    Datetime date;
+    date.time_ = *((time_t*)ptr);
+    return date;
+  }
 
-  size_t size() const { return sizeof(time_t); }
-  void * Raw() const { return (void*)&time_; }
+  static size_t size() { return sizeof(time_t); }
+
+  const void * Raw() const { return (void*)&time_; }
 
 private:
+  Datetime() {}
+
   time_t time_;
 };
+
+inline int sqlite3_bind_datetime(sqlite3_stmt * stmt, int pos,
+    const Datetime& datetime) {
+  return sqlite3_bind_blob(stmt, pos, datetime.Raw(), Datetime::size(),
+      SQLITE_TRANSIENT);
+}
+
+inline Datetime sqlite3_column_datetime(sqlite3_stmt * stmt, int iCol) {
+  const void * ptr = sqlite3_column_blob(stmt, iCol);
+
+  if (ptr == nullptr) {
+    throw std::runtime_error("Database contains empty Datetime");
+  } else {
+    if ((size_t)sqlite3_column_bytes(stmt, iCol) != Datetime::size()) {
+      throw std::runtime_error("Invalid Datetime in database");
+    }
+    return Datetime::FromRaw(ptr);
+  }
+}
 
 #endif // SRC_DATETIME_HPP_

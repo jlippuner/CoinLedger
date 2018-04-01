@@ -20,8 +20,9 @@ Account* Account::Create(File* file, std::string name, bool placeholder,
     return nullptr;
   } else {
     auto id = file->GetUUID();
-    file->AddAccount(Account(id, name, placeholder, parent, single_coin, coin));
-    return &file->Accounts().at(id);
+    auto iter = file->AddAccount(Account(id, name, placeholder, parent,
+        single_coin, coin));
+    return &iter.first->second;
   }
 }
 
