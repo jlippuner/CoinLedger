@@ -28,6 +28,8 @@ class FixedPoint10 {
 public:
   static constexpr uint64_t Denominator = ipow_(10, D);
 
+  int64_t Raw() const { return val_; }
+
 private:
   int64_t val_;
 };

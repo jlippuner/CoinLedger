@@ -18,6 +18,9 @@ class Datetime {
 public:
   Datetime() = delete;
 
+  size_t size() const { return sizeof(time_t); }
+  void * Raw() const { return (void*)&time_; }
+
 private:
   time_t time_;
 };

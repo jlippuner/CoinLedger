@@ -29,25 +29,9 @@ public:
   static Coin& Create(File* file, std::string id, std::string name,
       std::string symbol);
 
-  std::string Id() const {
-    return id_;
-  }
-
-  const std::string& Name() const {
-    return name_;
-  }
-
-  std::string& Name() {
-    return name_;
-  }
-
-  const std::string& Symbol() const {
-    return symbol_;
-  }
-
-  std::string& Symbol() {
-    return symbol_;
-  }
+  std::string Id() const { return id_; }
+  const std::string& Name() const { return name_; }
+  const std::string& Symbol() const { return symbol_; }
 
 private:
   Coin(std::string id, std::string name, std::string symbol):

@@ -13,7 +13,6 @@
 #include <unordered_map>
 
 #include <boost/functional/hash.hpp>
-#include <boost/uuid/uuid.hpp>
 #include <boost/uuid/random_generator.hpp>
 
 #include "Account.hpp"

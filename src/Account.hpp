@@ -30,13 +30,12 @@ public:
       const Account * parent, bool single_coin,
       const Coin * coin = nullptr);
 
-  uuid_t Id() const {
-    return id_;
-  }
-
-  std::string Name() const {
-    return name_;
-  }
+  uuid_t Id() const { return id_; }
+  const std::string& Name() const { return name_; }
+  bool Placeholder() const { return placeholder_; }
+  const Account * Parent() const { return parent_; }
+  bool Single_coin() const { return single_coin_; }
+  const Coin * GetCoin() const { return coin_; }
 
   static std::string MakeFullName(const Account * parent, std::string name);
 

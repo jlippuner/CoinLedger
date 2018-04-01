@@ -12,9 +12,8 @@
 #include <string>
 #include <vector>
 
-#include <boost/uuid/uuid.hpp>
-
 #include "Datetime.hpp"
+#include "UUID.hpp"
 
 class Split;
 
@@ -25,9 +24,15 @@ public:
   Transaction(const Transaction&) = delete;
   Transaction& operator=(const Transaction&) = delete;
 
+  uuid_t Id() const { return id_; }
+  Datetime Date() const { return date_; }
+  const std::string& Description() const { return description_; }
+  const std::string& Import_id() const { return import_id_; }
+  const std::vector<Split*>& Splits() const { return splits_; }
+
 private:
   // unique global identifier of this transaction
-  const boost::uuids::uuid id_;
+  const uuid_t id_;
 
   // the date of this transaction
   Datetime date_;
