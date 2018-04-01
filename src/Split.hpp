@@ -36,9 +36,6 @@ private:
 
   // the coin that is credited or debited to the account
   Coin coin_;
-
-  // true if this amount is a credit to account_
-  bool credit_;
 };
 
 #endif // SRC_SPLIT_HPP_

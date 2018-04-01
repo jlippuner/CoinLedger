@@ -35,12 +35,12 @@ private:
   // description of this transaction
   std::string description_;
 
-  // the splits that make up this transaction
-  std::vector<Split*> splits_;
-
   // if this transaction is important from an external source, an import ID can
   // be stored here in order to avoid duplicate imports
   std::string import_id_;
+
+  // the splits that make up this transaction
+  std::vector<Split*> splits_;
 };
 
 #endif // SRC_TRANSACTION_HPP_

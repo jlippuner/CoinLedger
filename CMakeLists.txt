@@ -49,6 +49,11 @@ find_package(JSONCPP REQUIRED)
 set(COINLEDGER_EXTERNAL_LIBS "${COINLEDGER_EXTERNAL_LIBS};${JSONCPP_LIBRARIES}")
 include_directories(${JSONCPP_INCLUDE_DIRS})
 
+# we need SQLITE3
+find_package(SQLITE3 REQUIRED)
+set(COINLEDGER_EXTERNAL_LIBS "${COINLEDGER_EXTERNAL_LIBS};${SQLITE3_LIBRARIES}")
+include_directories(${SQLITE3_INCLUDE_DIRS})
+
 macro(add_CoinLedger_library library sources)
   add_library(${library} OBJECT ${sources})
   set(COINLEDGER_LIBS "${COINLEDGER_LIBS};$<TARGET_OBJECTS:${library}>" PARENT_SCOPE)
