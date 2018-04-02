@@ -123,8 +123,9 @@ File File::Open(const std::string& path) {
         coin = &file.coins_.at(coin_id);
       }
 
-      file.accounts_.emplace(id, Account(id, name, placeholder, parent,
-          single_coin, coin));
+      auto& accnt = file.accounts_.emplace(id, Account(id, name, placeholder,
+          parent, single_coin, coin)).first->second;
+      file.accounts_by_fullname_.insert({{ accnt.FullName(), accnt.Id() }});
       res = sqlite3_step(stmt);
     }
     if (res != SQLITE_DONE) SQL3(db, res);

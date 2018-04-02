@@ -63,6 +63,9 @@ public:
   uuid_t GetAccount_by_fullname(std::string fullname) const {
     return accounts_by_fullname_.at(fullname);
   }
+  Account * GetAccount(std::string fullname) {
+    return &accounts_.at(accounts_by_fullname_.at(fullname));
+  }
 
   Transaction * AddTransaction(Transaction && transaction) {
     return &transactions_.emplace(transaction.Id(),
