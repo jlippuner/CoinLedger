@@ -39,41 +39,43 @@ public:
 
   void Save(const std::string& path) const;
 
-  boost::uuids::uuid GetUUID() {
-    return generator_();
-  }
+  boost::uuids::uuid GetUUID() { return generator_(); }
 
-  auto AddCoin(Coin && coin) {
-    return coins_.emplace(coin.Id(), std::move(coin));
+  Coin * AddCoin(Coin && coin) {
+    return &coins_.emplace(coin.Id(), std::move(coin)).first->second;
   }
+  Coin * GetCoin(std::string id) { return &coins_.at(id); }
+  const std::unordered_map<std::string, Coin>& Coins() const { return coins_; }
 
-  std::unordered_map<std::string, Coin>& Coins() {
-    return coins_;
-  }
-
-  const std::unordered_map<std::string, Coin>& Coins() const {
-    return coins_;
-  }
-
-  auto AddAccount(Account && account) {
+  Account * AddAccount(Account && account) {
     // do this first! after moving account, the full name and id will no
     // longer be available
     accounts_by_fullname_.insert({{ account.FullName(), account.Id() }});
 
-    return accounts_.emplace(account.Id(), std::move(account));
+    return &accounts_.emplace(account.Id(), std::move(account)).first->second;
   }
-
-  UUIDMap<Account>& Accounts() {
-    return accounts_;
-  }
-
-  const UUIDMap<Account>& Accounts() const {
-    return accounts_;
-  }
+  Account * GetAccount(uuid_t id) { return &accounts_.at(id); }
+  const UUIDMap<Account>& Accounts() const { return accounts_; }
 
   const std::unordered_map<std::string, uuid_t>& Accounts_by_fullname() const {
     return accounts_by_fullname_;
   }
+  uuid_t GetAccount_by_fullname(std::string fullname) const {
+    return accounts_by_fullname_.at(fullname);
+  }
+
+  Transaction * AddTransaction(Transaction && transaction) {
+    return &transactions_.emplace(transaction.Id(),
+        std::move(transaction)).first->second;
+  }
+  Transaction * GetTransaction(uuid_t id) { return &transactions_.at(id); }
+  const UUIDMap<Transaction>& Transactions() const { return transactions_; }
+
+  Split * AddSplit(Split && split) {
+    return &splits_.emplace(split.Id(), std::move(split)).first->second;
+  }
+  Split * GetSplit(uuid_t id) { return &splits_.at(id); }
+  const UUIDMap<Split>& Splits() const { return splits_; }
 
 private:
   File() {}

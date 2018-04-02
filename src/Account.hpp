@@ -19,13 +19,6 @@ class File;
 
 class Account {
 public:
-  // no constructors that don't create a new id
-  Account() = delete;
-  Account(const Account&) = delete;
-  Account& operator=(const Account&) = delete;
-
-  Account(Account&&) = default;
-
   static Account* Create(File* file, std::string name, bool placeholder,
       const Account * parent, bool single_coin,
       const Coin * coin = nullptr);

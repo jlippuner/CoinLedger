@@ -13,9 +13,8 @@
 Coin* Coin::Create(File* file, std::string id, std::string name,
     std::string symbol) {
   if (file->Coins().count(id) > 0) {
-    return &file->Coins().at(id);
+    return file->GetCoin(id);
   } else {
-    auto iter = file->AddCoin(Coin(id, name, symbol));
-    return &iter.first->second;
+    return file->AddCoin(Coin(id, name, symbol));
   }
 }

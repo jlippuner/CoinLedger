@@ -28,6 +28,9 @@ class FixedPoint10 {
 public:
   static constexpr uint64_t Denominator = ipow_(10, D);
 
+  FixedPoint10(int i):
+      val_(i * Denominator) {}
+
   static FixedPoint10 FromRaw(int64_t val) {
     FixedPoint10 f;
     f.val_ = val;
@@ -35,6 +38,26 @@ public:
   }
 
   int64_t Raw() const { return val_; }
+
+  // comparison operators
+  bool operator==(const FixedPoint10& other) const {
+    return val_ == other.val_;
+  }
+  bool operator!=(const FixedPoint10& other) const {
+    return val_ != other.val_;
+  }
+  bool operator>(const FixedPoint10& other) const {
+    return val_ > other.val_;
+  }
+  bool operator<(const FixedPoint10& other) const {
+    return val_ < other.val_;
+  }
+  bool operator>=(const FixedPoint10& other) const {
+    return val_ >= other.val_;
+  }
+  bool operator<=(const FixedPoint10& other) const {
+    return val_ <= other.val_;
+  }
 
 private:
   FixedPoint10() {}

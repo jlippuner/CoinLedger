@@ -20,6 +20,7 @@ set(SWIG_deps
   PriceSource.hpp
   Split.hpp
   Transaction.hpp
+  UUID.hpp
   CoinLedger.i
 )
 

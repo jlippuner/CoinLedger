@@ -16,14 +16,41 @@
 class Account;
 class Transaction;
 
+// this contains the split information without an id and transaction id, in
+// order to perform error checking before the actual split gets created
+class ProtoSplit {
+public:
+  ProtoSplit(const Account * account, std::string memo, Amount amount,
+      const Coin * coin):
+      account_(account),
+      memo_(memo),
+      amount_(amount),
+      coin_(coin) {}
+
+  // the account to or from which the amount is added or subtracted
+  const Account * account_;
+
+  // memo of this split
+  std::string memo_;
+
+  // the amount of this split, always positive
+  Amount amount_;
+
+  // the coin that is credited or debited to the account
+  const Coin * coin_;
+};
+
 class Split {
 public:
-  // no constructs that don't create a new id
-  Split() = delete;
-  Split(const Split&) = delete;
-  Split& operator=(const Split&) = delete;
+  static Split* Create(File* file, const Transaction * transaction,
+      const Account * account, std::string memo, Amount amount,
+      const Coin * coin);
 
-  Split(Split&&) = default;
+  static Split* Create(File* file, const Transaction * transaction,
+      const ProtoSplit& protoSplit) {
+    return Split::Create(file, transaction, protoSplit.account_,
+        protoSplit.memo_, protoSplit.amount_, protoSplit.coin_);
+  }
 
   uuid_t Id() const { return id_; }
   const Transaction * GetTransaction() const { return transaction_; }

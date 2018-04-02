@@ -13,18 +13,16 @@
 #include <vector>
 
 #include "Datetime.hpp"
+#include "Split.hpp"
 #include "UUID.hpp"
 
+class File;
 class Split;
 
 class Transaction {
 public:
-  // no constructs that don't create a new id
-  Transaction() = delete;
-  Transaction(const Transaction&) = delete;
-  Transaction& operator=(const Transaction&) = delete;
-
-  Transaction(Transaction&&) = default;
+  static Transaction* Create(File* file, Datetime date, std::string description,
+      const std::vector<ProtoSplit>& protoSplits, std::string import_id = "");
 
   uuid_t Id() const { return id_; }
   Datetime Date() const { return date_; }

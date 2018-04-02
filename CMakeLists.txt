@@ -54,6 +54,17 @@ find_package(SQLITE3 REQUIRED)
 set(COINLEDGER_EXTERNAL_LIBS "${COINLEDGER_EXTERNAL_LIBS};${SQLITE3_LIBRARIES}")
 include_directories(${SQLITE3_INCLUDE_DIRS})
 
+# we need CSV
+find_package(CSV REQUIRED)
+set(COINLEDGER_EXTERNAL_LIBS "${COINLEDGER_EXTERNAL_LIBS};${CSV_LIBRARIES}")
+include_directories(${CSV_INCLUDE_DIRS})
+
+# we need SWIG
+find_package(SWIG 3 REQUIRED)
+find_package(PythonLibs 2.6 REQUIRED)
+include(${SWIG_USE_FILE})
+include_directories(${PYTHON_INCLUDE_DIRS})
+
 macro(add_CoinLedger_library library sources)
   add_library(${library} OBJECT ${sources})
   set(COINLEDGER_LIBS "${COINLEDGER_LIBS};$<TARGET_OBJECTS:${library}>" PARENT_SCOPE)
@@ -82,18 +93,11 @@ add_library(CoinLedger SHARED
 add_subdirectory(bin)
 
 # create SWIG Python bindings
-if(USE_SWIG)
-  SET_SOURCE_FILES_PROPERTIES("src/CoinLedger.i" PROPERTIES CPLUSPLUS ON)
+SET_SOURCE_FILES_PROPERTIES("src/CoinLedger.i" PROPERTIES CPLUSPLUS ON)
+SWIG_ADD_LIBRARY(CoinLedger LANGUAGE python SOURCES "src/CoinLedger.i")
 
-  if(${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION} LESS 3.8)
-    SWIG_ADD_MODULE(CoinLedger python "src/CoinLedger.i")
-  else()
-    SWIG_ADD_LIBRARY(CoinLedger LANGUAGE python SOURCES "src/CoinLedger.i")
-  endif()
-
-  SWIG_LINK_LIBRARIES(CoinLedger
-    CoinLedger_static
-    ${COINLEDGER_EXTERNAL_LIBS}
-    ${PYTHON_LIBRARIES}
-  )
-endif()
+SWIG_LINK_LIBRARIES(CoinLedger
+  CoinLedger_static
+  ${COINLEDGER_EXTERNAL_LIBS}
+  ${PYTHON_LIBRARIES}
+)

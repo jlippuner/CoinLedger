@@ -19,14 +19,7 @@ class File;
 
 class Coin {
 public:
-  // no constructors that don't create a new id
-  Coin() = delete;
-  Coin(const Coin&) = delete;
-  Coin& operator=(const Coin&) = delete;
-
-  Coin(Coin&&) = default;
-
-  static Coin* Create(File* file, std::string id, std::string name,
+  static Coin * Create(File* file, std::string id, std::string name,
       std::string symbol);
 
   std::string Id() const { return id_; }
