@@ -12,8 +12,8 @@
 # Find the native CSV headers and libraries.
 #
 # CSV_INCLUDE_DIRS	- where to find csv.h, etc.
-# CSV_LIBRARIES	- List of libraries when using sqlite.
-# CSV_FOUND	- True if sqlite found.
+# CSV_LIBRARIES	- List of libraries when using csv.
+# CSV_FOUND	- True if csv found.
 
 # Look for the header file.
 FIND_PATH(CSV_INCLUDE_DIR NAMES csv.h)
