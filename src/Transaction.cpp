@@ -13,19 +13,13 @@
 Transaction* Transaction::Create(File* file, Datetime date,
     std::string description, const std::vector<ProtoSplit>& protoSplits,
     std::string import_id) {
-  // check the proto splits to make sure none have a 0 amount and there is at
-  // least one negative amount and one positive amount
-  bool negative = false;
-  bool positive = false;
+  // check the proto splits to make sure a coin is set and the amount is
+  // non-zero, allow unmatched splits
   for (auto& s : protoSplits) {
     if (s.amount_ == 0) {
       printf("ERROR: Got split with 0 amount\n");
       return nullptr;
     }
-    if (s.amount_ > 0)
-      positive = true;
-    else
-      negative = true;
 
     if (s.account_ == nullptr) {
       printf("ERROR: Got split with no account\n");
@@ -36,12 +30,6 @@ Transaction* Transaction::Create(File* file, Datetime date,
       printf("ERROR: Got split with no coin");
       return nullptr;
     }
-  }
-
-  if (!(positive && negative)) {
-    printf("ERROR: Transaction must have at least one positive and one "
-        "negative split");
-    return nullptr;
   }
 
   // all splits are ok at this point, create the transaction
@@ -56,4 +44,18 @@ Transaction* Transaction::Create(File* file, Datetime date,
   }
 
   return transaction;
+}
+
+bool Transaction::Matched() const {
+  bool positive = false;
+  bool negative = false;
+
+  for (auto s : splits_) {
+    if (s->GetAmount() > 0)
+      positive = true;
+    if (s->GetAmount() < 0)
+      negative = true;
+  }
+
+  return (positive && negative);
 }

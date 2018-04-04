@@ -88,7 +88,9 @@ File File::Open(const std::string& path) {
       std::string name = sqlite3_column_str(stmt, 1);
       std::string symbol = sqlite3_column_str(stmt, 2);
 
-      file.coins_.emplace(id, Coin(id, name, symbol));
+      auto c = &file.coins_.emplace(id, Coin(id, name, symbol)).first->second;
+      file.coin_ids_by_symbol_.insert({{ c->Symbol(), c->Id() }});
+
       res = sqlite3_step(stmt);
     }
     if (res != SQLITE_DONE) SQL3(db, res);
@@ -101,6 +103,8 @@ File File::Open(const std::string& path) {
     SQL3(db, sqlite3_prepare_v2(db, "SELECT * FROM accounts;", -1, &stmt,
         nullptr));
 
+    std::unordered_map<uuid_t, uuid_t, uuid_t::hash> parents;
+
     int res = sqlite3_step(stmt);
     while (res == SQLITE_ROW) {
       uuid_t id = sqlite3_column_uuid(stmt, 0);
@@ -110,12 +114,10 @@ File File::Open(const std::string& path) {
       bool single_coin = (bool)sqlite3_column_int(stmt, 4);
       std::string coin_id = sqlite3_column_str(stmt, 5);
 
-      const Account * parent = nullptr;
+      // save parent so we can later connect the accounts
+      parents.insert({{ id, parent_id }});
+
       const Coin * coin = nullptr;
-
-      if (!parent_id.is_nil())
-        parent = &file.accounts_.at(parent_id);
-
       if (single_coin) {
         if (coin_id == "")
           throw std::runtime_error("Account " + name + " has single_coin but "
@@ -123,13 +125,28 @@ File File::Open(const std::string& path) {
         coin = &file.coins_.at(coin_id);
       }
 
-      auto& accnt = file.accounts_.emplace(id, Account(id, name, placeholder,
-          parent, single_coin, coin)).first->second;
-      file.accounts_by_fullname_.insert({{ accnt.FullName(), accnt.Id() }});
+      file.accounts_.emplace(id, Account(id, name, placeholder, nullptr,
+          single_coin, coin));
+
       res = sqlite3_step(stmt);
     }
     if (res != SQLITE_DONE) SQL3(db, res);
     SQL3(db, sqlite3_finalize(stmt));
+
+    // set account parents
+    for (auto& entry : file.accounts_) {
+      auto& accnt = entry.second;
+      uuid_t parent_id = parents.at(accnt.Id());
+
+      if (!parent_id.is_nil())
+        accnt.SetParent(&file.accounts_.at(parent_id));
+    }
+
+    // make map of full names
+    for (auto& entry : file.accounts_) {
+      auto& accnt = entry.second;
+      file.accounts_by_fullname_.insert({{ accnt.FullName(), accnt.Id() }});
+    }
   }
 
   // read transactions
@@ -399,3 +416,11 @@ void File::Save(const std::string& path) const {
   SQL3(db, sqlite3_close_v2(db));
 }
 #undef SQL3_FAIL
+
+void File::PrintAccountTree() const {
+  GetAccount("Assets")->PrintTree();
+  GetAccount("Equity")->PrintTree();
+  GetAccount("Expenses")->PrintTree();
+  GetAccount("Income")->PrintTree();
+  GetAccount("Liabilities")->PrintTree();
+}

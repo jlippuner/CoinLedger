@@ -30,6 +30,14 @@ public:
   const std::string& Import_id() const { return import_id_; }
   const std::vector<Split*>& Splits() const { return splits_; }
 
+  void AddSplit(Split * split) {
+    splits_.push_back(split);
+  }
+
+  // return true if the transaction has matched splits, i.e. there is a positive
+  // and a negative split
+  bool Matched() const;
+
 private:
   friend class File;
 
@@ -40,10 +48,6 @@ private:
       description_(description),
       import_id_(import_id) {}
 
-  void AddSplit(Split * split) {
-    splits_.push_back(split);
-  }
-
   // unique global identifier of this transaction
   const uuid_t id_;
 
@@ -53,7 +57,7 @@ private:
   // description of this transaction
   std::string description_;
 
-  // if this transaction is important from an external source, an import ID can
+  // if this transaction is imported from an external source, an import ID can
   // be stored here in order to avoid duplicate imports
   std::string import_id_;
 

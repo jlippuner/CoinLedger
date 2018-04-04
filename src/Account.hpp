@@ -20,7 +20,7 @@ class File;
 class Account {
 public:
   static Account* Create(File* file, std::string name, bool placeholder,
-      const Account * parent, bool single_coin,
+      Account * parent, bool single_coin,
       const Coin * coin = nullptr);
 
   uuid_t Id() const { return id_; }
@@ -36,6 +36,8 @@ public:
     return MakeFullName(parent_, name_);
   }
 
+  void PrintTree(std::string indent = "") const;
+
 private:
   friend class File;
 
@@ -47,6 +49,15 @@ private:
       parent_(parent),
       single_coin_(single_coin),
       coin_(coin) { }
+
+  void SetParent(Account * parent) {
+    parent_ = parent;
+    parent->AddChild(this);
+  }
+
+  void AddChild(Account * child) {
+    children_.push_back(child);
+  }
 
   // unique global identifier of this account
   const uuid_t id_;
@@ -69,8 +80,7 @@ private:
   const Coin * coin_;
 
   // child accounts whose parent account is this account
-  std::vector<const Account*> children_;
-
+  mutable std::vector<const Account*> children_;
 };
 
 #endif // SRC_ACCOUNT_HPP_

@@ -9,6 +9,7 @@
 #ifndef SRC_FILE_HPP_
 #define SRC_FILE_HPP_
 
+#include <algorithm>
 #include <string>
 #include <unordered_map>
 
@@ -36,10 +37,38 @@ public:
 
   void Save(const std::string& path) const;
 
+  void PrintAccountTree() const;
+
   Coin * AddCoin(Coin && coin) {
-    return &coins_.emplace(coin.Id(), std::move(coin)).first->second;
+    auto res = &coins_.emplace(coin.Id(), std::move(coin)).first->second;
+    coin_ids_by_symbol_.insert({{ res->Symbol(), res->Id() }});
+    return res;
   }
   Coin * GetCoin(std::string id) { return &coins_.at(id); }
+  const Coin * GetCoin(std::string id) const { return &coins_.at(id); }
+  const Coin * GetCoinBySymbol(std::string symbol) const {
+    auto count = coin_ids_by_symbol_.count(symbol);
+    if (count == 0) {
+      printf("WARNING: No coin with symbol '%s' exists\n", symbol.c_str());
+      return nullptr;
+    } else if (count == 1) {
+      return &coins_.at(coin_ids_by_symbol_.find(symbol)->second);
+    } else {
+      printf("WARNING: %lu coins with symbol '%s' exist:\n", count,
+          symbol.c_str());
+      auto range = coin_ids_by_symbol_.equal_range(symbol);
+      std::for_each(range.first, range.second,
+        [=](const decltype(coin_ids_by_symbol_)::value_type& x) {
+          auto c = &coins_.at(x.second);
+          printf("  %s: %s (id = %s)\n", c->Symbol().c_str(),
+              c->Name().c_str(), c->Id().c_str());
+        });
+      auto res = &coins_.at(range.first->second);
+      printf("  returning %s (id = %s)\n", res->Name().c_str(),
+          res->Id().c_str());
+      return res;
+    }
+  }
   const std::unordered_map<std::string, Coin>& Coins() const { return coins_; }
 
   Account * AddAccount(Account && account) {
@@ -61,6 +90,9 @@ public:
   Account * GetAccount(std::string fullname) {
     return &accounts_.at(accounts_by_fullname_.at(fullname));
   }
+  const Account * GetAccount(std::string fullname) const {
+    return &accounts_.at(accounts_by_fullname_.at(fullname));
+  }
 
   Transaction * AddTransaction(Transaction && transaction) {
     return &transactions_.emplace(transaction.Id(),
@@ -78,8 +110,12 @@ public:
 private:
   File() {}
 
+  void MakeCoinsBySymbolsMap();
+
   // all the known coins
   std::unordered_map<std::string, Coin> coins_;
+  // coin symbols are mostly unique, but not always
+  std::unordered_multimap<std::string, std::string> coin_ids_by_symbol_;
 
   // all accounts
   UUIDMap<Account> accounts_;
