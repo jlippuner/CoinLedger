@@ -19,7 +19,7 @@ Account* Account::Create(File* file, std::string name, bool placeholder,
     printf("WARNING account '%s' already exists\n", full_name.c_str());
     return nullptr;
   } else {
-    auto id = file->GetUUID();
+    auto id = uuid_t::Random();
     return file->AddAccount(Account(id, name, placeholder, parent,
         single_coin, coin));
   }

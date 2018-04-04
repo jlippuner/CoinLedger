@@ -3,6 +3,9 @@
 %include <std_string.i>
 %include <std_vector.i>
 
+%ignore uuid_t::hash;
+%ignore operator<<;
+
 %{
 #include "Account.hpp"
 #include "Amount.hpp"

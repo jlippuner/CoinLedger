@@ -45,7 +45,7 @@ Transaction* Transaction::Create(File* file, Datetime date,
   }
 
   // all splits are ok at this point, create the transaction
-  auto transaction_id = file->GetUUID();
+  auto transaction_id = uuid_t::Random();
   auto transaction = file->AddTransaction(Transaction(transaction_id, date,
       description, import_id));
 

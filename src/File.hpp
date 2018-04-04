@@ -12,9 +12,6 @@
 #include <string>
 #include <unordered_map>
 
-#include <boost/functional/hash.hpp>
-#include <boost/uuid/random_generator.hpp>
-
 #include "Account.hpp"
 #include "Coin.hpp"
 #include "Split.hpp"
@@ -22,7 +19,7 @@
 #include "UUID.hpp"
 
 template<typename T>
-using UUIDMap = std::unordered_map<uuid_t, T, boost::hash<uuid_t>>;
+using UUIDMap = std::unordered_map<uuid_t, T, uuid_t::hash>;
 
 // This class represents a CoinLedger file that stores all the information
 // contained in the program. The actual file used to write to and read from is
@@ -38,8 +35,6 @@ public:
   static File Open(const std::string& path);
 
   void Save(const std::string& path) const;
-
-  boost::uuids::uuid GetUUID() { return generator_(); }
 
   Coin * AddCoin(Coin && coin) {
     return &coins_.emplace(coin.Id(), std::move(coin)).first->second;
@@ -97,9 +92,6 @@ private:
 
   // all splits
   UUIDMap<Split> splits_;
-
-  // random generator to generate new UUID's
-  boost::uuids::random_generator generator_;
 };
 
 #endif // SRC_FILE_HPP_
