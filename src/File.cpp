@@ -88,8 +88,9 @@ File File::Open(const std::string& path) {
       std::string name = sqlite3_column_str(stmt, 1);
       std::string symbol = sqlite3_column_str(stmt, 2);
 
-      auto c = &file.coins_.emplace(id, Coin(id, name, symbol)).first->second;
-      file.coin_ids_by_symbol_.insert({{ c->Symbol(), c->Id() }});
+      auto c = file.coins_.emplace(id, std::make_shared<Coin>(
+          Coin(id, name, symbol))).first->second;
+      file.coin_by_symbol_.insert({{ c->Symbol(), c }});
 
       res = sqlite3_step(stmt);
     }
@@ -117,16 +118,16 @@ File File::Open(const std::string& path) {
       // save parent so we can later connect the accounts
       parents.insert({{ id, parent_id }});
 
-      const Coin * coin = nullptr;
+      std::shared_ptr<const Coin> coin = nullptr;
       if (single_coin) {
         if (coin_id == "")
           throw std::runtime_error("Account " + name + " has single_coin but "
               "no coin is set");
-        coin = &file.coins_.at(coin_id);
+        coin = file.coins_.at(coin_id);
       }
 
-      file.accounts_.emplace(id, Account(id, name, placeholder, nullptr,
-          single_coin, coin));
+      file.accounts_.emplace(id, std::make_shared<Account>(
+          Account(id, name, placeholder, nullptr, single_coin, coin)));
 
       res = sqlite3_step(stmt);
     }
@@ -136,16 +137,19 @@ File File::Open(const std::string& path) {
     // set account parents
     for (auto& entry : file.accounts_) {
       auto& accnt = entry.second;
-      uuid_t parent_id = parents.at(accnt.Id());
+      uuid_t parent_id = parents.at(accnt->Id());
 
-      if (!parent_id.is_nil())
-        accnt.SetParent(&file.accounts_.at(parent_id));
+      if (!parent_id.is_nil()) {
+        auto parent = file.accounts_.at(parent_id);
+        accnt->SetParent(parent);
+        parent->AddChild(accnt);
+      }
     }
 
     // make map of full names
     for (auto& entry : file.accounts_) {
       auto& accnt = entry.second;
-      file.accounts_by_fullname_.insert({{ accnt.FullName(), accnt.Id() }});
+      file.accounts_by_fullname_.insert({{ accnt->FullName(), accnt }});
     }
   }
 
@@ -162,8 +166,8 @@ File File::Open(const std::string& path) {
       std::string description = sqlite3_column_str(stmt, 2);
       std::string import_id = sqlite3_column_str(stmt, 3);
 
-      file.transactions_.emplace(id, Transaction(id, date, description,
-          import_id));
+      file.transactions_.emplace(id, std::make_shared<Transaction>(
+        Transaction(id, date, description, import_id)));
       res = sqlite3_step(stmt);
     }
     if (res != SQLITE_DONE) SQL3(db, res);
@@ -185,13 +189,13 @@ File File::Open(const std::string& path) {
       Amount amount = Amount::FromRaw(sqlite3_column_int64(stmt, 4));
       std::string coin_id = sqlite3_column_str(stmt, 5);
 
-      auto transaction = &file.transactions_.at(transaction_id);
-      auto account = &file.accounts_.at(account_id);
-      auto coin = &file.coins_.at(coin_id);
+      auto transaction = file.transactions_.at(transaction_id);
+      auto account = file.accounts_.at(account_id);
+      auto coin = file.coins_.at(coin_id);
 
-      auto iter = file.splits_.emplace(id, Split(id, transaction, account,
-          memo, amount, coin));
-      transaction->AddSplit(&iter.first->second);
+      auto iter = file.splits_.emplace(id, std::make_shared<Split>(
+          Split(id, transaction, account, memo, amount, coin)));
+      transaction->AddSplit(iter.first->second);
       res = sqlite3_step(stmt);
     }
     if (res != SQLITE_DONE) SQL3(db, res);
@@ -270,15 +274,15 @@ void File::Save(const std::string& path) const {
     SQL3_EXEC(db, "BEGIN TRANSACTION;", nullptr, nullptr);
 
     for (const auto& itm : coins_) {
-      const Coin& c = itm.second;
+      auto c = itm.second;
 
       // first reset statement
       SQL3(db, sqlite3_reset(stmt));
 
       // bind values to statement
-      SQL3(db, sqlite3_bind_str(stmt, 1, c.Id()));
-      SQL3(db, sqlite3_bind_str(stmt, 2, c.Name()));
-      SQL3(db, sqlite3_bind_str(stmt, 3, c.Symbol()));
+      SQL3(db, sqlite3_bind_str(stmt, 1, c->Id()));
+      SQL3(db, sqlite3_bind_str(stmt, 2, c->Name()));
+      SQL3(db, sqlite3_bind_str(stmt, 3, c->Symbol()));
 
       // execute the statement
       int res = sqlite3_step(stmt);
@@ -304,29 +308,29 @@ void File::Save(const std::string& path) const {
     SQL3_EXEC(db, "BEGIN TRANSACTION;", nullptr, nullptr);
 
     for (const auto& itm : accounts_) {
-      const Account& a = itm.second;
+      auto a = itm.second;
 
       // first reset statement
       SQL3(db, sqlite3_reset(stmt));
 
       // bind values to statement
 
-      SQL3(db, sqlite3_bind_uuid(stmt, 1, a.Id()));
-      SQL3(db, sqlite3_bind_str(stmt, 2, a.Name()));
-      SQL3(db, sqlite3_bind_int(stmt, 3, a.Placeholder()));
+      SQL3(db, sqlite3_bind_uuid(stmt, 1, a->Id()));
+      SQL3(db, sqlite3_bind_str(stmt, 2, a->Name()));
+      SQL3(db, sqlite3_bind_int(stmt, 3, a->Placeholder()));
 
-      if (a.Parent() == nullptr) {
+      if (a->Parent() == nullptr) {
         SQL3(db, sqlite3_bind_null(stmt, 4));
       } else {
-        SQL3(db, sqlite3_bind_uuid(stmt, 4, a.Parent()->Id()));
+        SQL3(db, sqlite3_bind_uuid(stmt, 4, a->Parent()->Id()));
       }
 
-      SQL3(db, sqlite3_bind_int(stmt, 5, a.Single_coin()));
+      SQL3(db, sqlite3_bind_int(stmt, 5, a->Single_coin()));
 
-      if (a.GetCoin() == nullptr) {
+      if (a->GetCoin() == nullptr) {
         SQL3(db, sqlite3_bind_null(stmt, 6));
       } else {
-        SQL3(db, sqlite3_bind_str(stmt, 6, a.GetCoin()->Id()));
+        SQL3(db, sqlite3_bind_str(stmt, 6, a->GetCoin()->Id()));
       }
 
       // execute the statement
@@ -353,17 +357,17 @@ void File::Save(const std::string& path) const {
     SQL3_EXEC(db, "BEGIN TRANSACTION;", nullptr, nullptr);
 
     for (const auto& itm : transactions_) {
-      const Transaction& t = itm.second;
+      auto t = itm.second;
 
       // first reset statement
       SQL3(db, sqlite3_reset(stmt));
 
       // bind values to statement
 
-      SQL3(db, sqlite3_bind_uuid(stmt, 1, t.Id()));
-      SQL3(db, sqlite3_bind_datetime(stmt, 2, t.Date()));
-      SQL3(db, sqlite3_bind_str(stmt, 3, t.Description()));
-      SQL3(db, sqlite3_bind_str(stmt, 4, t.Import_id()));
+      SQL3(db, sqlite3_bind_uuid(stmt, 1, t->Id()));
+      SQL3(db, sqlite3_bind_datetime(stmt, 2, t->Date()));
+      SQL3(db, sqlite3_bind_str(stmt, 3, t->Description()));
+      SQL3(db, sqlite3_bind_str(stmt, 4, t->Import_id()));
 
       // execute the statement
       int res = sqlite3_step(stmt);
@@ -389,19 +393,19 @@ void File::Save(const std::string& path) const {
     SQL3_EXEC(db, "BEGIN TRANSACTION;", nullptr, nullptr);
 
     for (const auto& itm : splits_) {
-      const Split& s = itm.second;
+      auto s = itm.second;
 
       // first reset statement
       SQL3(db, sqlite3_reset(stmt));
 
       // bind values to statement
 
-      SQL3(db, sqlite3_bind_uuid(stmt, 1, s.Id()));
-      SQL3(db, sqlite3_bind_uuid(stmt, 2, s.GetTransaction()->Id()));
-      SQL3(db, sqlite3_bind_uuid(stmt, 3, s.GetAccount()->Id()));
-      SQL3(db, sqlite3_bind_str(stmt, 4, s.Memo()));
-      SQL3(db, sqlite3_bind_int64(stmt, 5, s.GetAmount().Raw()));
-      SQL3(db, sqlite3_bind_str(stmt, 6, s.GetCoin()->Id()));
+      SQL3(db, sqlite3_bind_uuid(stmt, 1, s->Id()));
+      SQL3(db, sqlite3_bind_uuid(stmt, 2, s->GetTransaction()->Id()));
+      SQL3(db, sqlite3_bind_uuid(stmt, 3, s->GetAccount()->Id()));
+      SQL3(db, sqlite3_bind_str(stmt, 4, s->Memo()));
+      SQL3(db, sqlite3_bind_int64(stmt, 5, s->GetAmount().Raw()));
+      SQL3(db, sqlite3_bind_str(stmt, 6, s->GetCoin()->Id()));
 
       // execute the statement
       int res = sqlite3_step(stmt);
@@ -416,6 +420,30 @@ void File::Save(const std::string& path) const {
   SQL3(db, sqlite3_close_v2(db));
 }
 #undef SQL3_FAIL
+
+std::shared_ptr<const Coin> File::GetCoinBySymbol(std::string symbol) const {
+    auto count = coin_by_symbol_.count(symbol);
+    if (count == 0) {
+      printf("WARNING: No coin with symbol '%s' exists\n", symbol.c_str());
+      return nullptr;
+    } else if (count == 1) {
+      return coin_by_symbol_.find(symbol)->second;
+    } else {
+      printf("WARNING: %lu coins with symbol '%s' exist:\n", count,
+          symbol.c_str());
+      auto range = coin_by_symbol_.equal_range(symbol);
+      std::for_each(range.first, range.second,
+        [=](const decltype(coin_by_symbol_)::value_type& x) {
+          auto c = x.second;
+          printf("  %s: %s (id = %s)\n", c->Symbol().c_str(),
+              c->Name().c_str(), c->Id().c_str());
+        });
+      auto res = range.first->second;
+      printf("  returning %s (id = %s)\n", res->Name().c_str(),
+          res->Id().c_str());
+      return res;
+    }
+  }
 
 void File::PrintAccountTree() const {
   GetAccount("Assets")->PrintTree();

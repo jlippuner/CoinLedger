@@ -9,6 +9,7 @@
 #ifndef SRC_ACCOUNT_HPP_
 #define SRC_ACCOUNT_HPP_
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -19,18 +20,19 @@ class File;
 
 class Account {
 public:
-  static Account* Create(File* file, std::string name, bool placeholder,
-      Account * parent, bool single_coin,
-      const Coin * coin = nullptr);
+  static std::shared_ptr<Account> Create(File* file, std::string name,
+      bool placeholder, std::shared_ptr<Account> parent,
+      bool single_coin, std::shared_ptr<const Coin> coin = nullptr);
 
   uuid_t Id() const { return id_; }
   const std::string& Name() const { return name_; }
   bool Placeholder() const { return placeholder_; }
-  const Account * Parent() const { return parent_; }
+  std::shared_ptr<const Account> Parent() const { return parent_; }
   bool Single_coin() const { return single_coin_; }
-  const Coin * GetCoin() const { return coin_; }
+  std::shared_ptr<const Coin> GetCoin() const { return coin_; }
 
-  static std::string MakeFullName(const Account * parent, std::string name);
+  static std::string MakeFullName(std::shared_ptr<const Account> parent,
+      std::string name);
 
   std::string FullName() const {
     return MakeFullName(parent_, name_);
@@ -41,8 +43,9 @@ public:
 private:
   friend class File;
 
-  Account(uuid_t id, std::string name, bool placeholder, const Account * parent,
-      bool single_coin, const Coin * coin = nullptr) :
+  Account(uuid_t id, std::string name, bool placeholder,
+      std::shared_ptr<const Account> parent, bool single_coin,
+      std::shared_ptr<const Coin> coin = nullptr) :
       id_(id),
       name_(name),
       placeholder_(placeholder),
@@ -50,12 +53,12 @@ private:
       single_coin_(single_coin),
       coin_(coin) { }
 
-  void SetParent(Account * parent) {
+  void SetParent(std::shared_ptr<Account> parent) {
     parent_ = parent;
-    parent->AddChild(this);
+    //parent->AddChild(this);
   }
 
-  void AddChild(Account * child) {
+  void AddChild(std::shared_ptr<const Account> child) {
     children_.push_back(child);
   }
 
@@ -71,16 +74,16 @@ private:
 
   // the parent of this account, the only accounts that have no parent are the
   // special Asset, Liability, Income, Expense, Equity accounts
-  const Account * parent_;
+  std::shared_ptr<const Account> parent_;
 
   // true if this account only has transactions in a single coin
   bool single_coin_;
 
   // if this is a single coin account, this is the coin used in this account
-  const Coin * coin_;
+  std::shared_ptr<const Coin> coin_;
 
   // child accounts whose parent account is this account
-  mutable std::vector<const Account*> children_;
+  mutable std::vector<std::shared_ptr<const Account>> children_;
 };
 
 #endif // SRC_ACCOUNT_HPP_

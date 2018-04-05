@@ -9,6 +9,8 @@
 #ifndef SRC_SPLIT_HPP_
 #define SRC_SPLIT_HPP_
 
+#include <memory>
+
 #include "Amount.hpp"
 #include "Coin.hpp"
 #include "UUID.hpp"
@@ -20,15 +22,15 @@ class Transaction;
 // order to perform error checking before the actual split gets created
 class ProtoSplit {
 public:
-  ProtoSplit(const Account * account, std::string memo, Amount amount,
-      const Coin * coin):
+  ProtoSplit(std::shared_ptr<const Account> account, std::string memo,
+      Amount amount, std::shared_ptr<const Coin> coin):
       account_(account),
       memo_(memo),
       amount_(amount),
       coin_(coin) {}
 
   // the account to or from which the amount is added or subtracted
-  const Account * account_;
+  std::shared_ptr<const Account> account_;
 
   // memo of this split
   std::string memo_;
@@ -37,33 +39,38 @@ public:
   Amount amount_;
 
   // the coin that is credited or debited to the account
-  const Coin * coin_;
+  std::shared_ptr<const Coin> coin_;
 };
 
 class Split {
 public:
-  static Split* Create(File* file, const Transaction * transaction,
-      const Account * account, std::string memo, Amount amount,
-      const Coin * coin);
+  static std::shared_ptr<Split> Create(File * file,
+      std::shared_ptr<const Transaction> transaction,
+      std::shared_ptr<const Account> account, std::string memo, Amount amount,
+      std::shared_ptr<const Coin> coin);
 
-  static Split* Create(File* file, const Transaction * transaction,
+  static std::shared_ptr<Split> Create(File * file,
+      std::shared_ptr<const Transaction> transaction,
       const ProtoSplit& protoSplit) {
     return Split::Create(file, transaction, protoSplit.account_,
         protoSplit.memo_, protoSplit.amount_, protoSplit.coin_);
   }
 
   uuid_t Id() const { return id_; }
-  const Transaction * GetTransaction() const { return transaction_; }
-  const Account * GetAccount() const { return account_; }
+  std::shared_ptr<const Transaction> GetTransaction() const {
+      return transaction_;
+  }
+  std::shared_ptr<const Account> GetAccount() const { return account_; }
   const std::string& Memo() const { return memo_; }
   Amount GetAmount() const { return amount_; }
-  const Coin * GetCoin() const { return coin_; }
+  std::shared_ptr<const Coin> GetCoin() const { return coin_; }
 
 private:
   friend class File;
 
-  Split(uuid_t id, const Transaction * transaction, const Account * account,
-      std::string memo, Amount amount, const Coin * coin):
+  Split(uuid_t id, std::shared_ptr<const Transaction> transaction,
+      std::shared_ptr<const Account> account, std::string memo, Amount amount,
+      std::shared_ptr<const Coin> coin):
       id_(id),
       transaction_(transaction),
       account_(account),
@@ -75,10 +82,10 @@ private:
   const uuid_t id_;
 
   // the transaction with which this split is associated
-  const Transaction * const transaction_;
+  std::shared_ptr<const Transaction> const transaction_;
 
   // the account to or from which the amount is added or subtracted
-  const Account * account_;
+  std::shared_ptr<const Account> account_;
 
   // memo of this split
   std::string memo_;
@@ -87,7 +94,7 @@ private:
   Amount amount_;
 
   // the coin that is credited or debited to the account
-  const Coin * coin_;
+  std::shared_ptr<const Coin> coin_;
 };
 
 #endif // SRC_SPLIT_HPP_

@@ -10,8 +10,9 @@
 
 #include "File.hpp"
 
-Account* Account::Create(File* file, std::string name, bool placeholder,
-      Account * parent, bool single_coin, const Coin * coin) {
+std::shared_ptr<Account> Account::Create(File * file, std::string name,
+    bool placeholder, std::shared_ptr<Account> parent,
+    bool single_coin, std::shared_ptr<const Coin> coin) {
   // check if an account with this full name already exists
   auto full_name = MakeFullName(parent, name);
 
@@ -30,7 +31,8 @@ Account* Account::Create(File* file, std::string name, bool placeholder,
   }
 }
 
-std::string Account::MakeFullName(const Account * parent, std::string name) {
+std::string Account::MakeFullName(std::shared_ptr<const Account> parent,
+    std::string name) {
   if (parent == nullptr) {
     return name;
   } else {
@@ -43,7 +45,7 @@ void Account::PrintTree(std::string indent) const {
 
   // sort children by name
   std::sort(children_.begin(), children_.end(),
-      [](const Account * a, const Account * b) {
+      [](std::shared_ptr<const Account> a, std::shared_ptr<const Account> b) {
         return a->name_ < b->name_;
       });
 

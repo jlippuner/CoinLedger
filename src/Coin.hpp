@@ -9,9 +9,8 @@
 #ifndef SRC_COIN_HPP_
 #define SRC_COIN_HPP_
 
+#include <memory>
 #include <string>
-
-#include <boost/uuid/uuid.hpp>
 
 class File;
 
@@ -19,8 +18,8 @@ class File;
 
 class Coin {
 public:
-  static Coin * Create(File* file, std::string id, std::string name,
-      std::string symbol);
+  static std::shared_ptr<Coin> Create(File * file, std::string id,
+      std::string name, std::string symbol);
 
   std::string Id() const { return id_; }
   const std::string& Name() const { return name_; }

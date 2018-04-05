@@ -10,7 +10,7 @@
 
 #include "File.hpp"
 
-Transaction* Transaction::Create(File* file, Datetime date,
+std::shared_ptr<Transaction> Transaction::Create(File * file, Datetime date,
     std::string description, const std::vector<ProtoSplit>& protoSplits,
     std::string import_id) {
   // check the proto splits to make sure a coin is set and the amount is
