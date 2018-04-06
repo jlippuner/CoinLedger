@@ -40,6 +40,9 @@ public:
   // and a negative split
   bool Matched() const;
 
+  // return true if the transaction has a split with this import id
+  bool HasSplitWithImportId(const std::string& import_id) const;
+
 private:
   friend class File;
 

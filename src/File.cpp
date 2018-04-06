@@ -190,13 +190,14 @@ File File::Open(const std::string& path) {
       std::string memo = sqlite3_column_str(stmt, 3);
       Amount amount = Amount::FromRaw(sqlite3_column_int64(stmt, 4));
       std::string coin_id = sqlite3_column_str(stmt, 5);
+      std::string import_id = sqlite3_column_str(stmt, 6);
 
       auto transaction = file.transactions_.at(transaction_id);
       auto account = file.accounts_.at(account_id);
       auto coin = file.coins_.at(coin_id);
 
       auto iter = file.splits_.emplace(id, std::make_shared<Split>(
-          Split(id, transaction, account, memo, amount, coin)));
+          Split(id, transaction, account, memo, amount, coin, import_id)));
       transaction->AddSplit(iter.first->second);
       res = sqlite3_step(stmt);
     }
@@ -263,7 +264,8 @@ void File::Save(const std::string& path) const {
           account_id      BLOB(16),
           memo            TEXT,
           amount          BIGINT,
-          coin            TEXT
+          coin            TEXT,
+          import_id       TEXT
         ) WITHOUT ROWID;
       )", nullptr, nullptr);
   }
@@ -392,7 +394,7 @@ void File::Save(const std::string& path) const {
     sqlite3_stmt * stmt = nullptr;
     const char * sql = R"(
         INSERT INTO splits
-        VALUES (?, ?, ?, ?, ?, ?);
+        VALUES (?, ?, ?, ?, ?, ?, ?);
       )";
 
     SQL3(db, sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr));
@@ -414,6 +416,7 @@ void File::Save(const std::string& path) const {
       SQL3(db, sqlite3_bind_str(stmt, 4, s->Memo()));
       SQL3(db, sqlite3_bind_int64(stmt, 5, s->GetAmount().Raw()));
       SQL3(db, sqlite3_bind_str(stmt, 6, s->GetCoin()->Id()));
+      SQL3(db, sqlite3_bind_str(stmt, 7, s->Import_id()));
 
       // execute the statement
       int res = sqlite3_step(stmt);

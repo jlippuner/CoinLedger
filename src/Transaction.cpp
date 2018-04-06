@@ -59,3 +59,11 @@ bool Transaction::Matched() const {
 
   return (positive && negative);
 }
+
+bool Transaction::HasSplitWithImportId(const std::string& import_id) const {
+  for (auto& s : splits_) {
+    if (s->Import_id() == import_id)
+      return true;
+  }
+  return false;
+}

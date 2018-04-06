@@ -13,8 +13,8 @@
 std::shared_ptr<Split> Split::Create(File * file,
     std::shared_ptr<const Transaction> transaction,
     std::shared_ptr<const Account> account, std::string memo, Amount amount,
-    std::shared_ptr<const Coin> coin) {
+    std::shared_ptr<const Coin> coin, std::string import_id) {
   auto id = uuid_t::Random();
-  return file->AddSplit(Split(id, transaction, account, memo, amount,
-      coin));
+  return file->AddSplit(Split(id, transaction, account, memo, amount, coin,
+        import_id));
 }

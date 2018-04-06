@@ -23,11 +23,12 @@ class Transaction;
 class ProtoSplit {
 public:
   ProtoSplit(std::shared_ptr<const Account> account, std::string memo,
-      Amount amount, std::shared_ptr<const Coin> coin):
+      Amount amount, std::shared_ptr<const Coin> coin, std::string import_id):
       account_(account),
       memo_(memo),
       amount_(amount),
-      coin_(coin) {}
+      coin_(coin),
+      import_id_(import_id) {}
 
   // the account to or from which the amount is added or subtracted
   std::shared_ptr<const Account> account_;
@@ -40,6 +41,10 @@ public:
 
   // the coin that is credited or debited to the account
   std::shared_ptr<const Coin> coin_;
+
+  // if this split is imported from an external source, an import ID can
+  // be stored here in order to avoid duplicate imports
+  std::string import_id_;
 };
 
 class Split {
@@ -47,13 +52,14 @@ public:
   static std::shared_ptr<Split> Create(File * file,
       std::shared_ptr<const Transaction> transaction,
       std::shared_ptr<const Account> account, std::string memo, Amount amount,
-      std::shared_ptr<const Coin> coin);
+      std::shared_ptr<const Coin> coin, std::string import_id);
 
   static std::shared_ptr<Split> Create(File * file,
       std::shared_ptr<const Transaction> transaction,
       const ProtoSplit& protoSplit) {
     return Split::Create(file, transaction, protoSplit.account_,
-        protoSplit.memo_, protoSplit.amount_, protoSplit.coin_);
+        protoSplit.memo_, protoSplit.amount_, protoSplit.coin_,
+        protoSplit.import_id_);
   }
 
   uuid_t Id() const { return id_; }
@@ -64,19 +70,21 @@ public:
   const std::string& Memo() const { return memo_; }
   Amount GetAmount() const { return amount_; }
   std::shared_ptr<const Coin> GetCoin() const { return coin_; }
+  const std::string& Import_id() const { return import_id_; }
 
 private:
   friend class File;
 
   Split(uuid_t id, std::shared_ptr<const Transaction> transaction,
       std::shared_ptr<const Account> account, std::string memo, Amount amount,
-      std::shared_ptr<const Coin> coin):
+      std::shared_ptr<const Coin> coin, std::string import_id):
       id_(id),
       transaction_(transaction),
       account_(account),
       memo_(memo),
       amount_(amount),
-      coin_(coin) {}
+      coin_(coin),
+      import_id_(import_id) {}
 
   // unique global identifier of this split
   const uuid_t id_;
@@ -95,6 +103,10 @@ private:
 
   // the coin that is credited or debited to the account
   std::shared_ptr<const Coin> coin_;
+
+  // if this split is imported from an external source, an import ID can
+  // be stored here in order to avoid duplicate imports
+  std::string import_id_;
 };
 
 #endif // SRC_SPLIT_HPP_
