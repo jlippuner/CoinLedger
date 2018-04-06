@@ -22,7 +22,13 @@
 #include "Transaction.hpp"
 #include "UUID.hpp"
 #include "File.hpp"
+
+#include "importers/CSV.hpp"
+#include "importers/GDAX.hpp"
 %}
+
+%template(vec_str) std::vector<std::string>;
+%template(vec_vec_str) std::vector<std::vector<std::string>>;
 
 %include "Account.hpp"
 %include "Amount.hpp"
@@ -33,3 +39,7 @@
 %include "Transaction.hpp"
 %include "UUID.hpp"
 %include "File.hpp"
+
+%ignore CSV::operator[];
+%include "importers/CSV.hpp"
+%include "importers/GDAX.hpp"

@@ -79,13 +79,17 @@ public:
   }
 
   std::shared_ptr<Transaction> AddTransaction(const Transaction & transaction) {
-    return transactions_.emplace(transaction.Id(),
+    auto res = transactions_.emplace(transaction.Id(),
         std::make_shared<Transaction>(transaction)).first->second;
+    transactions_by_import_id_.insert({{ res->Import_id(), res }});
+    return res;
   }
   std::shared_ptr<Transaction> GetTransaction(uuid_t id) {
     return transactions_.at(id);
   }
   const UUIDMap<Transaction>& Transactions() const { return transactions_; }
+  const std::unordered_multimap<std::string, std::shared_ptr<Transaction>>&
+  TransactionsByImportId() const { return transactions_by_import_id_; }
 
   std::shared_ptr<Split> AddSplit(const Split & split) {
     return splits_.emplace(split.Id(),
@@ -113,6 +117,10 @@ private:
 
   // all transactions
   UUIDMap<Transaction> transactions_;
+
+  // transactions by import id
+  std::unordered_multimap<std::string, std::shared_ptr<Transaction>>
+  transactions_by_import_id_;
 
   // all std::shared_ptrlits
   UUIDMap<Split> splits_;

@@ -168,8 +168,9 @@ File File::Open(const std::string& path) {
       std::string description = sqlite3_column_str(stmt, 2);
       std::string import_id = sqlite3_column_str(stmt, 3);
 
-      file.transactions_.emplace(id, std::make_shared<Transaction>(
-        Transaction(id, date, description, import_id)));
+      auto txn = file.transactions_.emplace(id, std::make_shared<Transaction>(
+        Transaction(id, date, description, import_id))).first->second;
+      file.transactions_by_import_id_.insert({{ import_id, txn }});
       res = sqlite3_step(stmt);
     }
     if (res != SQLITE_DONE) SQL3(db, res);

@@ -1,7 +1,8 @@
-#include "File.hpp"
-
 #include <iostream>
 
+#include "File.hpp"
+#include "importers/GDAX.hpp"
+#include "importers/CSV.hpp"
 
 int main(int, char**) {
   // auto f = File::InitNewFile();
@@ -22,6 +23,9 @@ int main(int, char**) {
   //   const Account& acc = itm.second;
   //   std::cout << acc.Id() << " is account " << acc.Name() << std::endl;
   // }
+
+  CSV csv("/home/jlippuner/MEGA/finances/crypto/GDAX_USD_account.csv");
+  GDAX::Import("", nullptr, nullptr, nullptr);
 
   return 0;
 }
