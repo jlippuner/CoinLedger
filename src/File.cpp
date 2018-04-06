@@ -11,7 +11,9 @@
 #include <stdexcept>
 
 #include <sqlite3.h>
+#include <boost/filesystem.hpp>
 
+#include "Datetime.hpp"
 #include "PriceSource.hpp"
 
 // convenience macros for sqlite3 calls
@@ -209,6 +211,12 @@ File File::Open(const std::string& path) {
 
 #define SQL3_FAIL return
 void File::Save(const std::string& path) const {
+  // if a file with this name already exists, move it to <name>_date
+  if (boost::filesystem::exists(path)) {
+    auto backup = path + "_" + Datetime::Now().ToStrLocalTimeFile();
+    boost::filesystem::rename(path, backup);
+  }
+
   sqlite3 * db = nullptr;
   if (sqlite3_open_v2(path.c_str(), &db,
       SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) != SQLITE_OK) {

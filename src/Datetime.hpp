@@ -20,17 +20,19 @@
 class Datetime {
 public:
   static Datetime FromRaw(const void* ptr) {
-    Datetime date;
-    date.time_ = *((time_t*)ptr);
-    return date;
+    return Datetime(*((time_t*)ptr));
   }
+
+  static Datetime Now() { return Datetime(time(nullptr)); }
 
   static size_t size() { return sizeof(time_t); }
 
   const void * Raw() const { return (void*)&time_; }
 
+  std::string ToStrLocalTimeFile() const;
+
 private:
-  Datetime() {}
+  Datetime(time_t time) : time_(time) {}
 
   time_t time_;
 };

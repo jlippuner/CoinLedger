@@ -35,7 +35,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include_directories(${CoinLedger_SOURCE_DIR}/src)
 
 # we need Boost
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED filesystem)
 set(COINLEDGER_EXTERNAL_LIBS "${COINLEDGER_EXTERNAL_LIBS};${Boost_LIBRARIES}")
 include_directories(${Boost_INCLUDE_DIRS})
 
