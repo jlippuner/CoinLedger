@@ -1,5 +1,6 @@
 %module CoinLedger
 
+%include <stdint.i>
 %include <std_string.i>
 %include <std_vector.i>
 %include <std_shared_ptr.i>
@@ -43,3 +44,5 @@
 %ignore CSV::operator[];
 %include "importers/CSV.hpp"
 %include "importers/GDAX.hpp"
+
+%template(Amount) FixedPoint10<10>;

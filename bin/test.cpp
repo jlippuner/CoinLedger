@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include "Amount.hpp"
 #include "File.hpp"
 #include "importers/GDAX.hpp"
 #include "importers/CSV.hpp"
@@ -26,6 +27,12 @@ int main(int, char**) {
 
   CSV csv("/home/jlippuner/MEGA/finances/crypto/GDAX_USD_account.csv");
   GDAX::Import("", nullptr, nullptr, nullptr);
+
+  for (auto& r : csv.Content()) {
+    auto amt = r[2];
+    auto a = Amount::Parse(amt);
+    printf("%25s  %20li\n", amt.c_str(), a.Raw());
+  }
 
   return 0;
 }
