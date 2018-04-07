@@ -336,7 +336,7 @@ void File::Save(const std::string& path) const {
         SQL3(db, sqlite3_bind_uuid(stmt, 4, a->Parent()->Id()));
       }
 
-      SQL3(db, sqlite3_bind_int(stmt, 5, a->Single_coin()));
+      SQL3(db, sqlite3_bind_int(stmt, 5, a->SingleCoin()));
 
       if (a->GetCoin() == nullptr) {
         SQL3(db, sqlite3_bind_null(stmt, 6));
@@ -463,4 +463,25 @@ void File::PrintAccountTree() const {
   GetAccount("Expenses")->PrintTree();
   GetAccount("Income")->PrintTree();
   GetAccount("Liabilities")->PrintTree();
+}
+
+void File::PrintTransactions() const {
+  for (auto& txn_entry : transactions_) {
+    auto& txn = txn_entry.second;
+
+    auto desc = txn->Description();
+    if (!txn->Balanced())
+      desc = "[UNBALANCED] " + desc;
+    else if (!txn->Matched())
+      desc = "[UNMATCHED] " + desc;
+
+    printf("%s %s\n", txn->Date().ToStrUTC().c_str(), desc.c_str());
+
+    for (auto& s : txn->Splits()) {
+      printf("  %s %s to %s (%s)\n", s->GetAmount().ToStr().c_str(),
+          s->GetCoin()->Symbol().c_str(), s->GetAccount()->FullName().c_str(),
+          s->Memo().c_str());
+    }
+    printf("\n");
+  }
 }

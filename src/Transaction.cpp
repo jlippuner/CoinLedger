@@ -60,6 +60,35 @@ bool Transaction::Matched() const {
   return (positive && negative);
 }
 
+bool Transaction::Balanced() const {
+  if (!Matched())
+    return false;
+
+  if (splits_.size() < 2)
+    return false;
+
+  bool single_coin = true;
+  auto coin = splits_[0]->GetCoin()->Id();
+  for (size_t i = 1; i < splits_.size(); ++i) {
+    if (splits_[i]->GetCoin()->Id() != coin) {
+      single_coin = false;
+      break;
+    }
+  }
+
+  if (single_coin) {
+    // make sure all the amounts add up to 0
+    Amount sum = 0;
+    for (auto& s : splits_)
+      sum += s->GetAmount();
+
+    if (sum != 0)
+      return false;
+  }
+
+  return true;
+}
+
 bool Transaction::HasSplitWithImportId(const std::string& import_id) const {
   for (auto& s : splits_) {
     if (s->Import_id() == import_id)

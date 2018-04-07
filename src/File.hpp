@@ -40,6 +40,8 @@ public:
 
   void PrintAccountTree() const;
 
+  void PrintTransactions() const;
+
   std::shared_ptr<Coin> AddCoin(const Coin & coin) {
     auto res = coins_.emplace(coin.Id(),
         std::make_shared<Coin>(coin)).first->second;
@@ -65,11 +67,8 @@ public:
   const UUIDMap<Account>& Accounts() const { return accounts_; }
 
   const std::unordered_map<std::string, std::shared_ptr<Account>>&
-  Accounts_by_fullname() const {
+  AccountsByFullname() const {
     return accounts_by_fullname_;
-  }
-  std::shared_ptr<Account> GetAccount_by_fullname(std::string fullname) const {
-    return accounts_by_fullname_.at(fullname);
   }
   std::shared_ptr<Account> GetAccount(std::string fullname) {
     return accounts_by_fullname_.at(fullname);

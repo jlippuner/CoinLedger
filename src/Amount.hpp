@@ -89,6 +89,22 @@ public:
 
   int64_t Raw() const { return val_; }
 
+  std::string ToStr() const {
+    uint64_t uint_part = labs(val_) / Denominator();
+    int64_t frac_part = labs(val_) - (uint_part * Denominator());
+    if (frac_part < 0)
+      throw std::runtime_error("Something went wrong in FixedPoint10::ToStr");
+
+    uint64_t ufrac = (uint64_t)frac_part;
+
+    char format[16];
+    char str[64];
+    sprintf(format, "%%lu.%%0%ulu", D);
+    sprintf(str, format, uint_part, ufrac);
+
+    return ((val_ < 0) ? "-" : "") + std::string(str);
+  }
+
   // comparison operators
   bool operator==(const FixedPoint10& other) const {
     return val_ == other.val_;
@@ -107,6 +123,23 @@ public:
   }
   bool operator<=(const FixedPoint10& other) const {
     return val_ <= other.val_;
+  }
+
+  // arithmetic operators
+  FixedPoint10 operator-() const { return FixedPoint10(-val_); }
+  FixedPoint10 operator+(const FixedPoint10& other) const {
+    return FixedPoint10(val_ + other.val_);
+  }
+  FixedPoint10& operator+=(const FixedPoint10& other) {
+    val_ += other.val_;
+    return *this;
+  }
+  FixedPoint10 operator-(const FixedPoint10& other) const {
+    return FixedPoint10(val_ - other.val_);
+  }
+  FixedPoint10& operator-=(const FixedPoint10& other) {
+    val_ -= other.val_;
+    return *this;
   }
 
 private:

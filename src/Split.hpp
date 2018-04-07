@@ -77,14 +77,7 @@ private:
 
   Split(uuid_t id, std::shared_ptr<const Transaction> transaction,
       std::shared_ptr<const Account> account, std::string memo, Amount amount,
-      std::shared_ptr<const Coin> coin, std::string import_id):
-      id_(id),
-      transaction_(transaction),
-      account_(account),
-      memo_(memo),
-      amount_(amount),
-      coin_(coin),
-      import_id_(import_id) {}
+      std::shared_ptr<const Coin> coin, std::string import_id);
 
   // unique global identifier of this split
   const uuid_t id_;

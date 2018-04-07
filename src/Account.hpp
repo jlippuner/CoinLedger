@@ -28,7 +28,7 @@ public:
   const std::string& Name() const { return name_; }
   bool Placeholder() const { return placeholder_; }
   std::shared_ptr<const Account> Parent() const { return parent_; }
-  bool Single_coin() const { return single_coin_; }
+  bool SingleCoin() const { return single_coin_; }
   std::shared_ptr<const Coin> GetCoin() const { return coin_; }
 
   static std::string MakeFullName(std::shared_ptr<const Account> parent,

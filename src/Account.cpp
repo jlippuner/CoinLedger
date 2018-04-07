@@ -16,7 +16,7 @@ std::shared_ptr<Account> Account::Create(File * file, std::string name,
   // check if an account with this full name already exists
   auto full_name = MakeFullName(parent, name);
 
-  if (file->Accounts_by_fullname().count(full_name) > 0) {
+  if (file->AccountsByFullname().count(full_name) > 0) {
     printf("WARNING account '%s' already exists\n", full_name.c_str());
     return nullptr;
   } else {

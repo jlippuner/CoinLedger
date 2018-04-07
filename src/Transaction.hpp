@@ -40,6 +40,11 @@ public:
   // and a negative split
   bool Matched() const;
 
+  // return true if the transaction is balanced. The transaction needs to be
+  // matched in order to be balanced, and additionally, if all the splits are
+  // the same coin, the sum of all the amounts must be 0
+  bool Balanced() const;
+
   // return true if the transaction has a split with this import id
   bool HasSplitWithImportId(const std::string& import_id) const;
 
