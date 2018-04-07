@@ -24,15 +24,19 @@ public:
   }
 
   static Datetime Now() { return Datetime(time(nullptr)); }
+  static Datetime FromISO8601(const std::string& str);
 
   static size_t size() { return sizeof(time_t); }
-
   const void * Raw() const { return (void*)&time_; }
 
-  std::string ToStrLocalTimeFile() const;
+  std::string ToStrLocalFile() const;
+  std::string ToStrLocal() const;
+  std::string ToStrUTC() const;
 
 private:
   Datetime(time_t time) : time_(time) {}
+
+  std::string ToStr(struct tm * time_tm, const char * format) const;
 
   time_t time_;
 };

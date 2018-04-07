@@ -215,7 +215,7 @@ File File::Open(const std::string& path) {
 void File::Save(const std::string& path) const {
   // if a file with this name already exists, move it to <name>_date
   if (boost::filesystem::exists(path)) {
-    auto backup = path + "_" + Datetime::Now().ToStrLocalTimeFile();
+    auto backup = path + "_" + Datetime::Now().ToStrLocalFile();
     boost::filesystem::rename(path, backup);
   }
 
