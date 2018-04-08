@@ -485,3 +485,25 @@ void File::PrintTransactions() const {
     printf("\n");
   }
 }
+
+UUIDMap<Balance> File::MakeAccountBalances() const {
+  UUIDMap<Balance> balances;
+
+  for (auto& a : accounts_)
+    balances.insert({{ a.first, Balance() }});
+
+  for (auto& s : splits_)
+    balances[s.second->GetAccount()->Id()].AddSplit(s.second);
+
+  return balances;
+}
+
+void File::PrintAccountBalances() const {
+  auto balances = MakeAccountBalances();
+
+  GetAccount("Assets")->PrintTreeBalance(balances);
+  GetAccount("Equity")->PrintTreeBalance(balances);
+  GetAccount("Expenses")->PrintTreeBalance(balances);
+  GetAccount("Income")->PrintTreeBalance(balances);
+  GetAccount("Liabilities")->PrintTreeBalance(balances);
+}

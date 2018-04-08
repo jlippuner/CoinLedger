@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 
+#include "Balance.hpp"
 #include "Coin.hpp"
 #include "UUID.hpp"
 
@@ -39,6 +40,11 @@ public:
   }
 
   void PrintTree(std::string indent = "") const;
+
+  // print the balance of this account, all the sub account balance trees, and
+  // then print the total balance in this account and return the total balance
+  Balance PrintTreeBalance(const UUIDMap<Balance>& balances,
+      std::string indent = "") const;
 
 private:
   friend class File;

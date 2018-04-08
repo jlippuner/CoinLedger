@@ -21,6 +21,11 @@ Split::Split(uuid_t id, std::shared_ptr<const Transaction> transaction,
     amount_(amount),
     coin_(coin),
     import_id_(import_id) {
+  if (account->Placeholder()) {
+    throw std::invalid_argument("Can't add a split to placeholder account "
+        + account->FullName());
+  }
+
   if (account->SingleCoin()) {
     // make sure the coin of this split matches the coin of the account
     if (account->GetCoin()->Id() != coin->Id()) {

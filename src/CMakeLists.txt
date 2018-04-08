@@ -2,6 +2,7 @@ add_subdirectory(importers)
 
 set(srcs
   Account.cpp
+  Balance.cpp
   Coin.cpp
   Datetime.cpp
   File.cpp
@@ -15,6 +16,7 @@ add_CoinLedger_library(src "${srcs}")
 set(SWIG_deps
   Account.hpp
   Amount.hpp
+  Balance.hpp
   Coin.hpp
   Datetime.hpp
   File.hpp

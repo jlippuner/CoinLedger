@@ -16,6 +16,7 @@
 %{
 #include "Account.hpp"
 #include "Amount.hpp"
+#include "Balance.hpp"
 #include "Coin.hpp"
 #include "Datetime.hpp"
 #include "PriceSource.hpp"
@@ -33,6 +34,7 @@
 
 %include "Account.hpp"
 %include "Amount.hpp"
+%include "Balance.hpp"
 %include "Coin.hpp"
 %include "Datetime.hpp"
 %include "PriceSource.hpp"

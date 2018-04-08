@@ -33,6 +33,8 @@ public:
     return ipow_(10, D);
   }
 
+  FixedPoint10() : val_(0) {}
+
   FixedPoint10(int i) : val_(i * Denominator()) {}
 
   FixedPoint10(double d) {
@@ -143,7 +145,6 @@ public:
   }
 
 private:
-  FixedPoint10() = delete;
   FixedPoint10(int64_t val) : val_(val) {}
 
   int64_t val_;

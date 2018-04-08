@@ -14,6 +14,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <vector>
+#include <unordered_map>
 
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -88,5 +89,8 @@ inline uuid_t sqlite3_column_uuid(sqlite3_stmt * stmt, int iCol) {
     return uuid;
   }
 }
+
+template<typename T>
+using UUIDMap = std::unordered_map<uuid_t, T, uuid_t::hash>;
 
 #endif // SRC_UUID_HPP_

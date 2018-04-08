@@ -52,3 +52,28 @@ void Account::PrintTree(std::string indent) const {
   for (auto c : children_)
     c->PrintTree(indent + "  ");
 }
+
+Balance Account::PrintTreeBalance(const UUIDMap<Balance>& balances,
+    std::string indent) const {
+  printf("%s%s\n", indent.c_str(), name_.c_str());
+  balances.at(id_).Print(indent + "    ");
+
+  // sort children by name
+  std::sort(children_.begin(), children_.end(),
+      [](std::shared_ptr<const Account> a, std::shared_ptr<const Account> b) {
+        return a->name_ < b->name_;
+      });
+
+  if (children_.size() > 0) {
+    Balance sum;
+    for (auto c : children_)
+      sum += c->PrintTreeBalance(balances, indent + "  ");
+
+    printf("%sTOTAL %s\n", indent.c_str(), name_.c_str());
+    sum.Print(indent + "    ");
+
+    return sum;
+  } else {
+    return balances.at(id_);
+  }
+}
