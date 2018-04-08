@@ -13,10 +13,10 @@
 #include <vector>
 
 class CSV {
-public:
+ public:
   CSV(const std::string& path, bool first_line_is_header = true);
 
-  void HandleField(void * str, size_t len);
+  void HandleField(void* str, size_t len);
   void HandleRow(int c);
 
   bool HasHeader() const { return has_header_; }
@@ -31,7 +31,7 @@ public:
     return content_[i];
   }
 
-private:
+ private:
   // true if the first line was considered a header
   bool has_header_;
 
@@ -47,4 +47,4 @@ private:
   std::vector<std::string> current_record_;
 };
 
-#endif // SRC_IMPORTERS_CSV_HPP_
+#endif  // SRC_IMPORTERS_CSV_HPP_

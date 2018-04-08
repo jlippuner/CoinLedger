@@ -14,18 +14,15 @@
 
 namespace {
 
-void handle_field(void * str, size_t len, void * csv) {
+void handle_field(void* str, size_t len, void* csv) {
   ((CSV*)csv)->HandleField(str, len);
 }
 
-void handle_row(int c, void * csv) {
-  ((CSV*)csv)->HandleRow(c);
+void handle_row(int c, void* csv) { ((CSV*)csv)->HandleRow(c); }
 }
 
-}
-
-CSV::CSV(const std::string& path, bool first_line_is_header) :
-    has_header_(first_line_is_header) {
+CSV::CSV(const std::string& path, bool first_line_is_header)
+    : has_header_(first_line_is_header) {
   // create the parser
   struct csv_parser parser;
   if (csv_init(&parser, CSV_STRICT | CSV_STRICT_FINI | CSV_APPEND_NULL) != 0) {
@@ -33,7 +30,7 @@ CSV::CSV(const std::string& path, bool first_line_is_header) :
   }
 
   // open the file
-  FILE * f = fopen(path.c_str(), "rb");
+  FILE* f = fopen(path.c_str(), "rb");
   if (f == nullptr) {
     throw std::runtime_error("Could not open file '" + path + "' for reading");
   }
@@ -46,8 +43,8 @@ CSV::CSV(const std::string& path, bool first_line_is_header) :
   current_record_.clear();
 
   while (num_read > 0) {
-    if (csv_parse(&parser, buf, num_read, handle_field, handle_row, this)
-        != num_read) {
+    if (csv_parse(&parser, buf, num_read, handle_field, handle_row, this) !=
+        num_read) {
       throw std::runtime_error("Parsing CSV file '" + path + "' failed");
     }
 
@@ -61,7 +58,7 @@ CSV::CSV(const std::string& path, bool first_line_is_header) :
   csv_free(&parser);
 }
 
-void CSV::HandleField(void * str, size_t /*len*/) {
+void CSV::HandleField(void* str, size_t /*len*/) {
   current_record_.push_back(std::string((char*)str));
 }
 
@@ -77,8 +74,8 @@ void CSV::HandleRow(int /*c*/) {
     parsing_first_record_ = false;
   } else {
     if (current_record_.size() != num_fields_) {
-      throw std::runtime_error("Got a CSV record with a different number of "
-          "fields");
+      throw std::runtime_error(
+          "Got a CSV record with a different number of fields");
     }
     content_.push_back(current_record_);
   }

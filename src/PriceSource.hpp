@@ -4,16 +4,16 @@
 #include <string>
 #include <vector>
 
-#include <curlpp/cURLpp.hpp>
 #include <curlpp/Easy.hpp>
 #include <curlpp/Options.hpp>
+#include <curlpp/cURLpp.hpp>
 
 #include "Coin.hpp"
 
 class File;
 
 class PriceSource {
-public:
+ public:
   static const std::string coin_list_url;
 
   static PriceSource& Instance() {
@@ -21,9 +21,7 @@ public:
     return p;
   }
 
-  ~PriceSource() {
-    curlpp::terminate();
-  }
+  ~PriceSource() { curlpp::terminate(); }
 
   static std::string GetURL(std::string url) {
     return Instance().DoGetURL(url);
@@ -31,12 +29,10 @@ public:
 
   static void AddAllCoins(File* file);
 
-private:
-  PriceSource() { 
-    curlpp::initialize();
-  }
+ private:
+  PriceSource() { curlpp::initialize(); }
 
   std::string DoGetURL(std::string url) const;
 };
 
-#endif // SRC_PRICESOURCE_HPP_
+#endif  // SRC_PRICESOURCE_HPP_

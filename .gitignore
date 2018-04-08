@@ -19,3 +19,4 @@ run/
 .project
 .pydevproject
 .settings/
+compile_commands.json

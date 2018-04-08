@@ -20,10 +20,10 @@
 class File;
 
 class Account {
-public:
+ public:
   static std::shared_ptr<Account> Create(File* file, std::string name,
-      bool placeholder, std::shared_ptr<Account> parent,
-      bool single_coin, std::shared_ptr<const Coin> coin = nullptr);
+      bool placeholder, std::shared_ptr<Account> parent, bool single_coin,
+      std::shared_ptr<const Coin> coin = nullptr);
 
   uuid_t Id() const { return id_; }
   const std::string& Name() const { return name_; }
@@ -32,36 +32,34 @@ public:
   bool SingleCoin() const { return single_coin_; }
   std::shared_ptr<const Coin> GetCoin() const { return coin_; }
 
-  static std::string MakeFullName(std::shared_ptr<const Account> parent,
-      std::string name);
+  static std::string MakeFullName(
+      std::shared_ptr<const Account> parent, std::string name);
 
-  std::string FullName() const {
-    return MakeFullName(parent_, name_);
-  }
+  std::string FullName() const { return MakeFullName(parent_, name_); }
 
   void PrintTree(std::string indent = "") const;
 
   // print the balance of this account, all the sub account balance trees, and
   // then print the total balance in this account and return the total balance
-  Balance PrintTreeBalance(const UUIDMap<Balance>& balances,
-      std::string indent = "") const;
+  Balance PrintTreeBalance(
+      const UUIDMap<Balance>& balances, std::string indent = "") const;
 
-private:
+ private:
   friend class File;
 
   Account(uuid_t id, std::string name, bool placeholder,
       std::shared_ptr<const Account> parent, bool single_coin,
-      std::shared_ptr<const Coin> coin = nullptr) :
-      id_(id),
-      name_(name),
-      placeholder_(placeholder),
-      parent_(parent),
-      single_coin_(single_coin),
-      coin_(coin) { }
+      std::shared_ptr<const Coin> coin = nullptr)
+      : id_(id),
+        name_(name),
+        placeholder_(placeholder),
+        parent_(parent),
+        single_coin_(single_coin),
+        coin_(coin) {}
 
   void SetParent(std::shared_ptr<Account> parent) {
     parent_ = parent;
-    //parent->AddChild(this);
+    // parent->AddChild(this);
   }
 
   void AddChild(std::shared_ptr<const Account> child) {
@@ -92,4 +90,4 @@ private:
   mutable std::vector<std::shared_ptr<const Account>> children_;
 };
 
-#endif // SRC_ACCOUNT_HPP_
+#endif  // SRC_ACCOUNT_HPP_

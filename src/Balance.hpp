@@ -17,11 +17,13 @@
 #include "Split.hpp"
 
 class Balance {
-public:
+ public:
   Balance() {}
 
-  const std::unordered_map<std::shared_ptr<const Coin>, Amount>&
-  Amounts() const { return amounts_; }
+  const std::unordered_map<std::shared_ptr<const Coin>, Amount>& Amounts()
+      const {
+    return amounts_;
+  }
 
   void AddAmount(Amount amount, std::shared_ptr<const Coin> coin) {
     amounts_[coin] += amount;
@@ -41,8 +43,8 @@ public:
     return *this;
   }
 
-private:
+ private:
   std::unordered_map<std::shared_ptr<const Coin>, Amount> amounts_;
 };
 
-#endif // SRC_BALANCE_HPP_
+#endif  // SRC_BALANCE_HPP_

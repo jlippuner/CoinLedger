@@ -2,8 +2,8 @@
 
 #include "Amount.hpp"
 #include "File.hpp"
-#include "importers/GDAX.hpp"
 #include "importers/CSV.hpp"
+#include "importers/GDAX.hpp"
 
 int main(int, char**) {
   // auto f = File::InitNewFile();

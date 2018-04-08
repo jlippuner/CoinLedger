@@ -10,17 +10,17 @@
 
 #include "CSV.hpp"
 
-void GDAX::Import(const std::string& import_file, File * file,
+void GDAX::Import(const std::string& import_file, File* file,
     std::shared_ptr<Account> account, std::shared_ptr<Account> fee_account,
     std::shared_ptr<Account> usd_investment_account) {
   // read the CSV file
   CSV csv(import_file);
 
-  std::vector<std::string> expected_header{ "type", "time", "amount", "balance",
+  std::vector<std::string> expected_header{"type", "time", "amount", "balance",
       "amount/balance unit", "transfer id", "trade id", "order id"};
   if (csv.Header() != expected_header)
-    throw std::invalid_argument("CSV file '" + import_file
-        + "' has an unexpected header");
+    throw std::invalid_argument(
+        "CSV file '" + import_file + "' has an unexpected header");
 
   size_t num_duplicate = 0;
   size_t num_imported = 0;
@@ -60,8 +60,8 @@ void GDAX::Import(const std::string& import_file, File * file,
       if (file->TransactionsByImportId().count(tx_id) == 1)
         txn = file->TransactionsByImportId().find(tx_id)->second;
       else
-        throw std::runtime_error("Found multiple transaction with import id '"
-            + tx_id + "'");
+        throw std::runtime_error(
+            "Found multiple transaction with import id '" + tx_id + "'");
     }
 
     // if a transaction with this import id already exists, check if it has a
@@ -86,8 +86,8 @@ void GDAX::Import(const std::string& import_file, File * file,
         ((type == "deposit") || (type == "withdrawal"))) {
       // if this is a USD deposit or withdrawal, we can add the matching split
       // in the USD investment account
-      splits.push_back(ProtoSplit(usd_investment_account, "", -amount, coin,
-          split_id));
+      splits.push_back(
+          ProtoSplit(usd_investment_account, "", -amount, coin, split_id));
     }
 
     if (txn == nullptr) {

@@ -18,37 +18,35 @@
 // and time are stored as a unix timestamp in UTC
 
 class Datetime {
-public:
-  static Datetime FromRaw(const void* ptr) {
-    return Datetime(*((time_t*)ptr));
-  }
+ public:
+  static Datetime FromRaw(const void* ptr) { return Datetime(*((time_t*)ptr)); }
 
   static Datetime Now() { return Datetime(time(nullptr)); }
   static Datetime FromISO8601(const std::string& str);
 
   static size_t size() { return sizeof(time_t); }
-  const void * Raw() const { return (void*)&time_; }
+  const void* Raw() const { return (void*)&time_; }
 
   std::string ToStrLocalFile() const;
   std::string ToStrLocal() const;
   std::string ToStrUTC() const;
 
-private:
+ private:
   Datetime(time_t time) : time_(time) {}
 
-  std::string ToStr(struct tm * time_tm, const char * format) const;
+  std::string ToStr(struct tm* time_tm, const char* format) const;
 
   time_t time_;
 };
 
-inline int sqlite3_bind_datetime(sqlite3_stmt * stmt, int pos,
-    const Datetime& datetime) {
-  return sqlite3_bind_blob(stmt, pos, datetime.Raw(), Datetime::size(),
-      SQLITE_TRANSIENT);
+inline int sqlite3_bind_datetime(
+    sqlite3_stmt* stmt, int pos, const Datetime& datetime) {
+  return sqlite3_bind_blob(
+      stmt, pos, datetime.Raw(), Datetime::size(), SQLITE_TRANSIENT);
 }
 
-inline Datetime sqlite3_column_datetime(sqlite3_stmt * stmt, int iCol) {
-  const void * ptr = sqlite3_column_blob(stmt, iCol);
+inline Datetime sqlite3_column_datetime(sqlite3_stmt* stmt, int iCol) {
+  const void* ptr = sqlite3_column_blob(stmt, iCol);
 
   if (ptr == nullptr) {
     throw std::runtime_error("Database contains empty Datetime");
@@ -60,4 +58,4 @@ inline Datetime sqlite3_column_datetime(sqlite3_stmt * stmt, int iCol) {
   }
 }
 
-#endif // SRC_DATETIME_HPP_
+#endif  // SRC_DATETIME_HPP_

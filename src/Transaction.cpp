@@ -10,7 +10,7 @@
 
 #include "File.hpp"
 
-std::shared_ptr<Transaction> Transaction::Create(File * file, Datetime date,
+std::shared_ptr<Transaction> Transaction::Create(File* file, Datetime date,
     std::string description, const std::vector<ProtoSplit>& protoSplits,
     std::string import_id) {
   // check the proto splits to make sure a coin is set and the amount is
@@ -34,8 +34,8 @@ std::shared_ptr<Transaction> Transaction::Create(File * file, Datetime date,
 
   // all splits are ok at this point, create the transaction
   auto transaction_id = uuid_t::Random();
-  auto transaction = file->AddTransaction(Transaction(transaction_id, date,
-      description, import_id));
+  auto transaction = file->AddTransaction(
+      Transaction(transaction_id, date, description, import_id));
 
   // now create the splits and add them to the transaction
   for (auto& s : protoSplits) {
@@ -51,21 +51,17 @@ bool Transaction::Matched() const {
   bool negative = false;
 
   for (auto s : splits_) {
-    if (s->GetAmount() > 0)
-      positive = true;
-    if (s->GetAmount() < 0)
-      negative = true;
+    if (s->GetAmount() > 0) positive = true;
+    if (s->GetAmount() < 0) negative = true;
   }
 
   return (positive && negative);
 }
 
 bool Transaction::Balanced() const {
-  if (!Matched())
-    return false;
+  if (!Matched()) return false;
 
-  if (splits_.size() < 2)
-    return false;
+  if (splits_.size() < 2) return false;
 
   bool single_coin = true;
   auto coin = splits_[0]->GetCoin()->Id();
@@ -79,11 +75,9 @@ bool Transaction::Balanced() const {
   if (single_coin) {
     // make sure all the amounts add up to 0
     Amount sum = 0;
-    for (auto& s : splits_)
-      sum += s->GetAmount();
+    for (auto& s : splits_) sum += s->GetAmount();
 
-    if (sum != 0)
-      return false;
+    if (sum != 0) return false;
   }
 
   return true;
@@ -91,8 +85,7 @@ bool Transaction::Balanced() const {
 
 bool Transaction::HasSplitWithImportId(const std::string& import_id) const {
   for (auto& s : splits_) {
-    if (s->Import_id() == import_id)
-      return true;
+    if (s->Import_id() == import_id) return true;
   }
   return false;
 }

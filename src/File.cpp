@@ -17,32 +17,32 @@
 #include "PriceSource.hpp"
 
 // convenience macros for sqlite3 calls
-#define SQL3(db, COMMAND)                                                       \
-  if ((COMMAND) != SQLITE_OK) {                                                 \
-    printf("ERROR: SQL error at %s:%i: %s\n", __FILE__, __LINE__,               \
-        sqlite3_errmsg(db));                                                    \
-    {SQL3_FAIL;}                                                                \
-  }                                                                             \
-
-
-#define SQL3_EXEC(db, sql, callback, callback_arg)                              \
-  {                                                                             \
-    char * error_msg = nullptr;                                                 \
-    if (sqlite3_exec(db, sql, callback, callback_arg, &error_msg)               \
-        != SQLITE_OK) {                                                         \
-      printf("ERROR: SQL error at %s:%i: %s\n", __FILE__, __LINE__, error_msg); \
-      sqlite3_free(error_msg);                                                  \
-      {SQL3_FAIL;}                                                              \
-    }                                                                           \
+#define SQL3(db, COMMAND)                                         \
+  if ((COMMAND) != SQLITE_OK) {                                   \
+    printf("ERROR: SQL error at %s:%i: %s\n", __FILE__, __LINE__, \
+        sqlite3_errmsg(db));                                      \
+    { SQL3_FAIL; }                                                \
   }
 
-inline int sqlite3_bind_str(sqlite3_stmt * stmt, int pos,
-    const std::string& str) {
+#define SQL3_EXEC(db, sql, callback, callback_arg)                           \
+  {                                                                          \
+    char* error_msg = nullptr;                                               \
+    if (sqlite3_exec(db, sql, callback, callback_arg, &error_msg) !=         \
+        SQLITE_OK) {                                                         \
+      printf(                                                                \
+          "ERROR: SQL error at %s:%i: %s\n", __FILE__, __LINE__, error_msg); \
+      sqlite3_free(error_msg);                                               \
+      { SQL3_FAIL; }                                                         \
+    }                                                                        \
+  }
+
+inline int sqlite3_bind_str(
+    sqlite3_stmt* stmt, int pos, const std::string& str) {
   return sqlite3_bind_text(stmt, pos, str.c_str(), -1, SQLITE_TRANSIENT);
 }
 
-inline std::string sqlite3_column_str(sqlite3_stmt * stmt, int iCol) {
-  const unsigned char * ptr = sqlite3_column_text(stmt, iCol);
+inline std::string sqlite3_column_str(sqlite3_stmt* stmt, int iCol) {
+  const unsigned char* ptr = sqlite3_column_text(stmt, iCol);
   if (ptr == nullptr)
     return "";
   else
@@ -53,11 +53,11 @@ File File::InitNewFile() {
   File file;
 
   // create root accounts
-  Account::Create(&file, "Assets",      true, nullptr, false);
+  Account::Create(&file, "Assets", true, nullptr, false);
   Account::Create(&file, "Liabilities", true, nullptr, false);
-  Account::Create(&file, "Income",      true, nullptr, false);
-  Account::Create(&file, "Expenses",    true, nullptr, false);
-  Account::Create(&file, "Equity",      true, nullptr, false);
+  Account::Create(&file, "Income", true, nullptr, false);
+  Account::Create(&file, "Expenses", true, nullptr, false);
+  Account::Create(&file, "Equity", true, nullptr, false);
 
   // add all known coins
   Coin::Create(&file, "us-dollar", "US Dollar", "USD");
@@ -70,19 +70,19 @@ File File::InitNewFile() {
 File File::Open(const std::string& path) {
   File file;
 
-  sqlite3 * db = nullptr;
-  if (sqlite3_open_v2(path.c_str(), &db, SQLITE_OPEN_READONLY, nullptr)
-      != SQLITE_OK) {
+  sqlite3* db = nullptr;
+  if (sqlite3_open_v2(path.c_str(), &db, SQLITE_OPEN_READONLY, nullptr) !=
+      SQLITE_OK) {
     printf("ERROR: Could not open file '%s' for reading: %s\n", path.c_str(),
         sqlite3_errmsg(db));
-    {SQL3_FAIL;}
+    { SQL3_FAIL; }
   }
 
   // read coins
   {
-    sqlite3_stmt * stmt = nullptr;
-    SQL3(db, sqlite3_prepare_v2(db, "SELECT * FROM coins;", -1, &stmt,
-        nullptr));
+    sqlite3_stmt* stmt = nullptr;
+    SQL3(
+        db, sqlite3_prepare_v2(db, "SELECT * FROM coins;", -1, &stmt, nullptr));
 
     int res = sqlite3_step(stmt);
     while (res == SQLITE_ROW) {
@@ -90,9 +90,10 @@ File File::Open(const std::string& path) {
       std::string name = sqlite3_column_str(stmt, 1);
       std::string symbol = sqlite3_column_str(stmt, 2);
 
-      auto c = file.coins_.emplace(id, std::make_shared<Coin>(
-          Coin(id, name, symbol))).first->second;
-      file.coin_by_symbol_.insert({{ c->Symbol(), c }});
+      auto c = file.coins_
+                   .emplace(id, std::make_shared<Coin>(Coin(id, name, symbol)))
+                   .first->second;
+      file.coin_by_symbol_.insert({{c->Symbol(), c}});
 
       res = sqlite3_step(stmt);
     }
@@ -102,9 +103,9 @@ File File::Open(const std::string& path) {
 
   // read accounts
   {
-    sqlite3_stmt * stmt = nullptr;
-    SQL3(db, sqlite3_prepare_v2(db, "SELECT * FROM accounts;", -1, &stmt,
-        nullptr));
+    sqlite3_stmt* stmt = nullptr;
+    SQL3(db,
+        sqlite3_prepare_v2(db, "SELECT * FROM accounts;", -1, &stmt, nullptr));
 
     std::unordered_map<uuid_t, uuid_t, uuid_t::hash> parents;
 
@@ -118,18 +119,18 @@ File File::Open(const std::string& path) {
       std::string coin_id = sqlite3_column_str(stmt, 5);
 
       // save parent so we can later connect the accounts
-      parents.insert({{ id, parent_id }});
+      parents.insert({{id, parent_id}});
 
       std::shared_ptr<const Coin> coin = nullptr;
       if (single_coin) {
         if (coin_id == "")
-          throw std::runtime_error("Account " + name + " has single_coin but "
-              "no coin is set");
+          throw std::runtime_error(
+              "Account " + name + " has single_coin but no coin is set");
         coin = file.coins_.at(coin_id);
       }
 
-      file.accounts_.emplace(id, std::make_shared<Account>(
-          Account(id, name, placeholder, nullptr, single_coin, coin)));
+      file.accounts_.emplace(id, std::make_shared<Account>(Account(id, name,
+                                     placeholder, nullptr, single_coin, coin)));
 
       res = sqlite3_step(stmt);
     }
@@ -151,15 +152,15 @@ File File::Open(const std::string& path) {
     // make map of full names
     for (auto& entry : file.accounts_) {
       auto& accnt = entry.second;
-      file.accounts_by_fullname_.insert({{ accnt->FullName(), accnt }});
+      file.accounts_by_fullname_.insert({{accnt->FullName(), accnt}});
     }
   }
 
   // read transactions
   {
-    sqlite3_stmt * stmt = nullptr;
-    SQL3(db, sqlite3_prepare_v2(db, "SELECT * FROM transactions;", -1, &stmt,
-        nullptr));
+    sqlite3_stmt* stmt = nullptr;
+    SQL3(db, sqlite3_prepare_v2(
+                 db, "SELECT * FROM transactions;", -1, &stmt, nullptr));
 
     int res = sqlite3_step(stmt);
     while (res == SQLITE_ROW) {
@@ -168,9 +169,11 @@ File File::Open(const std::string& path) {
       std::string description = sqlite3_column_str(stmt, 2);
       std::string import_id = sqlite3_column_str(stmt, 3);
 
-      auto txn = file.transactions_.emplace(id, std::make_shared<Transaction>(
-        Transaction(id, date, description, import_id))).first->second;
-      file.transactions_by_import_id_.insert({{ import_id, txn }});
+      auto txn = file.transactions_
+                     .emplace(id, std::make_shared<Transaction>(Transaction(
+                                      id, date, description, import_id)))
+                     .first->second;
+      file.transactions_by_import_id_.insert({{import_id, txn}});
       res = sqlite3_step(stmt);
     }
     if (res != SQLITE_DONE) SQL3(db, res);
@@ -179,9 +182,9 @@ File File::Open(const std::string& path) {
 
   // read splits
   {
-    sqlite3_stmt * stmt = nullptr;
-    SQL3(db, sqlite3_prepare_v2(db, "SELECT * FROM splits;", -1, &stmt,
-        nullptr));
+    sqlite3_stmt* stmt = nullptr;
+    SQL3(db,
+        sqlite3_prepare_v2(db, "SELECT * FROM splits;", -1, &stmt, nullptr));
 
     int res = sqlite3_step(stmt);
     while (res == SQLITE_ROW) {
@@ -197,8 +200,9 @@ File File::Open(const std::string& path) {
       auto account = file.accounts_.at(account_id);
       auto coin = file.coins_.at(coin_id);
 
-      auto iter = file.splits_.emplace(id, std::make_shared<Split>(
-          Split(id, transaction, account, memo, amount, coin, import_id)));
+      auto iter = file.splits_.emplace(id,
+          std::make_shared<Split>(
+              Split(id, transaction, account, memo, amount, coin, import_id)));
       transaction->AddSplit(iter.first->second);
       res = sqlite3_step(stmt);
     }
@@ -219,9 +223,9 @@ void File::Save(const std::string& path) const {
     boost::filesystem::rename(path, backup);
   }
 
-  sqlite3 * db = nullptr;
+  sqlite3* db = nullptr;
   if (sqlite3_open_v2(path.c_str(), &db,
-      SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) != SQLITE_OK) {
+          SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) != SQLITE_OK) {
     printf("ERROR: Could not open file '%s' for writing: %s\n", path.c_str(),
         sqlite3_errmsg(db));
     return;
@@ -235,7 +239,8 @@ void File::Save(const std::string& path) const {
           name        TEXT,
           symbol      TEXT
         ) WITHOUT ROWID;
-      )", nullptr, nullptr);
+      )",
+        nullptr, nullptr);
 
     SQL3_EXEC(db, R"(
         CREATE TABLE accounts (
@@ -246,7 +251,8 @@ void File::Save(const std::string& path) const {
           single_coin BOOLEAN,
           coin        TEXT
         ) WITHOUT ROWID;
-      )", nullptr, nullptr);
+      )",
+        nullptr, nullptr);
 
     SQL3_EXEC(db, R"(
         CREATE TABLE transactions (
@@ -255,7 +261,8 @@ void File::Save(const std::string& path) const {
           description TEXT,
           import_id   TEXT
         ) WITHOUT ROWID;
-      )", nullptr, nullptr);
+      )",
+        nullptr, nullptr);
 
     // transaction is a reserved SQL keyword
     SQL3_EXEC(db, R"(
@@ -268,13 +275,14 @@ void File::Save(const std::string& path) const {
           coin            TEXT,
           import_id       TEXT
         ) WITHOUT ROWID;
-      )", nullptr, nullptr);
+      )",
+        nullptr, nullptr);
   }
 
   // write coins
   {
-    sqlite3_stmt * stmt = nullptr;
-    const char * sql = R"(
+    sqlite3_stmt* stmt = nullptr;
+    const char* sql = R"(
         INSERT INTO coins
         VALUES (?, ?, ?);
       )";
@@ -307,8 +315,8 @@ void File::Save(const std::string& path) const {
 
   // write accounts
   {
-    sqlite3_stmt * stmt = nullptr;
-    const char * sql = R"(
+    sqlite3_stmt* stmt = nullptr;
+    const char* sql = R"(
         INSERT INTO accounts
         VALUES (?, ?, ?, ?, ?, ?);
       )";
@@ -356,8 +364,8 @@ void File::Save(const std::string& path) const {
 
   // write transactions
   {
-    sqlite3_stmt * stmt = nullptr;
-    const char * sql = R"(
+    sqlite3_stmt* stmt = nullptr;
+    const char* sql = R"(
         INSERT INTO transactions
         VALUES (?, ?, ?, ?);
       )";
@@ -392,8 +400,8 @@ void File::Save(const std::string& path) const {
 
   // write splits
   {
-    sqlite3_stmt * stmt = nullptr;
-    const char * sql = R"(
+    sqlite3_stmt* stmt = nullptr;
+    const char* sql = R"(
         INSERT INTO splits
         VALUES (?, ?, ?, ?, ?, ?, ?);
       )";
@@ -434,28 +442,28 @@ void File::Save(const std::string& path) const {
 #undef SQL3_FAIL
 
 std::shared_ptr<const Coin> File::GetCoinBySymbol(std::string symbol) const {
-    auto count = coin_by_symbol_.count(symbol);
-    if (count == 0) {
-      printf("WARNING: No coin with symbol '%s' exists\n", symbol.c_str());
-      return nullptr;
-    } else if (count == 1) {
-      return coin_by_symbol_.find(symbol)->second;
-    } else {
-      printf("WARNING: %lu coins with symbol '%s' exist:\n", count,
-          symbol.c_str());
-      auto range = coin_by_symbol_.equal_range(symbol);
-      std::for_each(range.first, range.second,
+  auto count = coin_by_symbol_.count(symbol);
+  if (count == 0) {
+    printf("WARNING: No coin with symbol '%s' exists\n", symbol.c_str());
+    return nullptr;
+  } else if (count == 1) {
+    return coin_by_symbol_.find(symbol)->second;
+  } else {
+    printf(
+        "WARNING: %lu coins with symbol '%s' exist:\n", count, symbol.c_str());
+    auto range = coin_by_symbol_.equal_range(symbol);
+    std::for_each(range.first, range.second,
         [=](const decltype(coin_by_symbol_)::value_type& x) {
           auto c = x.second;
-          printf("  %s: %s (id = %s)\n", c->Symbol().c_str(),
-              c->Name().c_str(), c->Id().c_str());
+          printf("  %s: %s (id = %s)\n", c->Symbol().c_str(), c->Name().c_str(),
+              c->Id().c_str());
         });
-      auto res = range.first->second;
-      printf("  returning %s (id = %s)\n", res->Name().c_str(),
-          res->Id().c_str());
-      return res;
-    }
+    auto res = range.first->second;
+    printf(
+        "  returning %s (id = %s)\n", res->Name().c_str(), res->Id().c_str());
+    return res;
   }
+}
 
 void File::PrintAccountTree() const {
   GetAccount("Assets")->PrintTree();
@@ -489,8 +497,7 @@ void File::PrintTransactions() const {
 UUIDMap<Balance> File::MakeAccountBalances() const {
   UUIDMap<Balance> balances;
 
-  for (auto& a : accounts_)
-    balances.insert({{ a.first, Balance() }});
+  for (auto& a : accounts_) balances.insert({{a.first, Balance()}});
 
   for (auto& s : splits_)
     balances[s.second->GetAccount()->Id()].AddSplit(s.second);

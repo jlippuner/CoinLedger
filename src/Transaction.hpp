@@ -21,8 +21,8 @@ class File;
 class Split;
 
 class Transaction {
-public:
-  static std::shared_ptr<Transaction> Create(File * file, Datetime date,
+ public:
+  static std::shared_ptr<Transaction> Create(File* file, Datetime date,
       std::string description, const std::vector<ProtoSplit>& protoSplits,
       std::string import_id = "");
 
@@ -32,9 +32,7 @@ public:
   const std::string& Import_id() const { return import_id_; }
   const std::vector<std::shared_ptr<Split>>& Splits() const { return splits_; }
 
-  void AddSplit(std::shared_ptr<Split> split) {
-    splits_.push_back(split);
-  }
+  void AddSplit(std::shared_ptr<Split> split) { splits_.push_back(split); }
 
   // return true if the transaction has matched splits, i.e. there is a positive
   // and a negative split
@@ -48,15 +46,15 @@ public:
   // return true if the transaction has a split with this import id
   bool HasSplitWithImportId(const std::string& import_id) const;
 
-private:
+ private:
   friend class File;
 
-  Transaction(uuid_t id, Datetime date, std::string description,
-      std::string import_id) :
-      id_(id),
-      date_(date),
-      description_(description),
-      import_id_(import_id) {}
+  Transaction(
+      uuid_t id, Datetime date, std::string description, std::string import_id)
+      : id_(id),
+        date_(date),
+        description_(description),
+        import_id_(import_id) {}
 
   // unique global identifier of this transaction
   const uuid_t id_;
@@ -75,4 +73,4 @@ private:
   std::vector<std::shared_ptr<Split>> splits_;
 };
 
-#endif // SRC_TRANSACTION_HPP_
+#endif  // SRC_TRANSACTION_HPP_

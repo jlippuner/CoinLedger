@@ -9,12 +9,10 @@
 #include "Balance.hpp"
 
 void Balance::Print(std::string indent) const {
-  if (amounts_.size() == 0)
-    return;
+  if (amounts_.size() == 0) return;
 
   std::vector<std::shared_ptr<const Coin>> coins;
-  for (auto & am : amounts_)
-    coins.push_back(am.first);
+  for (auto& am : amounts_) coins.push_back(am.first);
 
   // sort coins by symbol
   std::sort(coins.begin(), coins.end(),

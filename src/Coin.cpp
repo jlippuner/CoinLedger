@@ -10,8 +10,8 @@
 
 #include "File.hpp"
 
-std::shared_ptr<Coin> Coin::Create(File * file, std::string id,
-    std::string name, std::string symbol) {
+std::shared_ptr<Coin> Coin::Create(
+    File* file, std::string id, std::string name, std::string symbol) {
   if (file->Coins().count(id) > 0) {
     return file->GetCoin(id);
   } else {

@@ -19,19 +19,18 @@ typedef uint32_t uint;
 namespace {
 
 uint64_t ipow_(uint base, uint exp) {
-  return exp > 1 ? ipow_(base, (exp>>1) + (exp&1)) * ipow_(base, exp>>1) : base;
+  return exp > 1 ? ipow_(base, (exp >> 1) + (exp & 1)) * ipow_(base, exp >> 1)
+                 : base;
 }
-
 }
 
 // D is number of digits after the decimal point
-template<uint D>
+template <uint D>
 class FixedPoint10 {
   static_assert(D < 17, "FixedPoint10 can have at most 17 digits");
-public:
-  static uint64_t Denominator() {
-    return ipow_(10, D);
-  }
+
+ public:
+  static uint64_t Denominator() { return ipow_(10, D); }
 
   FixedPoint10() : val_(0) {}
 
@@ -70,8 +69,7 @@ public:
         frac = frac.substr(0, D);
       } else if (frac.length() < D) {
         // there are too few decimal digits, add 0's up to length D
-        while (frac.length() < D)
-          frac += "0";
+        while (frac.length() < D) frac += "0";
       }
 
       // we now have a string of exactly D digits
@@ -81,8 +79,7 @@ public:
       val += std::stoull(frac);
     }
 
-    if (negative)
-      val = -val;
+    if (negative) val = -val;
 
     return FixedPoint10(val);
   }
@@ -114,12 +111,8 @@ public:
   bool operator!=(const FixedPoint10& other) const {
     return val_ != other.val_;
   }
-  bool operator>(const FixedPoint10& other) const {
-    return val_ > other.val_;
-  }
-  bool operator<(const FixedPoint10& other) const {
-    return val_ < other.val_;
-  }
+  bool operator>(const FixedPoint10& other) const { return val_ > other.val_; }
+  bool operator<(const FixedPoint10& other) const { return val_ < other.val_; }
   bool operator>=(const FixedPoint10& other) const {
     return val_ >= other.val_;
   }
@@ -144,7 +137,7 @@ public:
     return *this;
   }
 
-private:
+ private:
   FixedPoint10(int64_t val) : val_(val) {}
 
   int64_t val_;
@@ -152,4 +145,4 @@ private:
 
 using Amount = FixedPoint10<10>;
 
-#endif // SRC_AMOUNT_HPP_
+#endif  // SRC_AMOUNT_HPP_
