@@ -60,6 +60,10 @@ class File {
   const std::unordered_map<std::string, std::shared_ptr<Coin>>& Coins() const {
     return coins_;
   }
+  const std::unordered_multimap<std::string, std::shared_ptr<Coin>>&
+  CoinBySymbol() const {
+    return coin_by_symbol_;
+  }
 
   std::shared_ptr<Account> AddAccount(const Account& account) {
     auto res =

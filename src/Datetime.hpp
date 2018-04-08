@@ -22,7 +22,12 @@ class Datetime {
   static Datetime FromRaw(const void* ptr) { return Datetime(*((time_t*)ptr)); }
 
   static Datetime Now() { return Datetime(time(nullptr)); }
-  static Datetime FromISO8601(const std::string& str);
+  static Datetime FromISO8601(const std::string& str) {
+    return Parse(str, "%d-%d-%dT%d:%d:%fZ", true);
+  }
+  static Datetime FromUTC(const std::string& str) {
+    return Parse(str, "%d-%d-%d %d:%d:%f", true);
+  }
 
   static size_t size() { return sizeof(time_t); }
   const void* Raw() const { return (void*)&time_; }
@@ -35,6 +40,8 @@ class Datetime {
 
  private:
   Datetime(time_t time) : time_(time) {}
+
+  static Datetime Parse(const std::string& str, const char* format, bool UTC);
 
   std::string ToStr(struct tm* time_tm, const char* format) const;
 

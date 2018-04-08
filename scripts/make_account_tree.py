@@ -48,6 +48,7 @@ Account.Create(f, "USD Investment", False, equity, True, f.GetCoinBySymbol("USD"
 expenses = f.GetAccount("Expenses")
 
 transaction_fees = Account.Create(f, "Transaction Fees", False, expenses, False)
+Account.Create(f, "Kraken Withdrawals", False, transaction_fees, False)
 
 trading_fees = Account.Create(f, "Trading Fees", True, expenses, False)
 Account.Create(f, "GDAX",     False, trading_fees, False)
