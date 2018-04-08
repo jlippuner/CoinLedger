@@ -31,6 +31,8 @@ class Datetime {
   std::string ToStrLocal() const;
   std::string ToStrUTC() const;
 
+  bool operator<(const Datetime& other) { return time_ < other.time_; }
+
  private:
   Datetime(time_t time) : time_(time) {}
 

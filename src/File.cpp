@@ -474,24 +474,25 @@ void File::PrintAccountTree() const {
 }
 
 void File::PrintTransactions() const {
-  for (auto& txn_entry : transactions_) {
-    auto& txn = txn_entry.second;
+  std::vector<std::shared_ptr<Transaction>> txns;
+  for (auto& e : transactions_) txns.push_back(e.second);
+  PrintTransactions(txns);
+}
 
-    auto desc = txn->Description();
-    if (!txn->Balanced())
-      desc = "[UNBALANCED] " + desc;
-    else if (!txn->Matched())
-      desc = "[UNMATCHED] " + desc;
-
-    printf("%s %s\n", txn->Date().ToStrUTC().c_str(), desc.c_str());
-
-    for (auto& s : txn->Splits()) {
-      printf("  %s %s to %s (%s)\n", s->GetAmount().ToStr().c_str(),
-          s->GetCoin()->Symbol().c_str(), s->GetAccount()->FullName().c_str(),
-          s->Memo().c_str());
-    }
-    printf("\n");
+void File::PrintUnbalancedTransactions() const {
+  std::vector<std::shared_ptr<Transaction>> txns;
+  for (auto& e : transactions_) {
+    if (!e.second->Balanced()) txns.push_back(e.second);
   }
+  PrintTransactions(txns);
+}
+
+void File::PrintUnmatchedTransactions() const {
+  std::vector<std::shared_ptr<Transaction>> txns;
+  for (auto& e : transactions_) {
+    if (!e.second->Matched()) txns.push_back(e.second);
+  }
+  PrintTransactions(txns);
 }
 
 UUIDMap<Balance> File::MakeAccountBalances() const {
@@ -513,4 +514,31 @@ void File::PrintAccountBalances() const {
   GetAccount("Expenses")->PrintTreeBalance(balances);
   GetAccount("Income")->PrintTreeBalance(balances);
   GetAccount("Liabilities")->PrintTreeBalance(balances);
+}
+
+void File::PrintTransactions(
+    std::vector<std::shared_ptr<Transaction>> txns) const {
+  // sort transaction by account full name
+  std::sort(
+      txns.begin(), txns.end(), [](const std::shared_ptr<Transaction>& a,
+                                    const std::shared_ptr<Transaction>& b) {
+        return a->Date() < b->Date();
+      });
+
+  for (auto& txn : txns) {
+    auto desc = txn->Description();
+    if (!txn->Balanced())
+      desc = "[UNBALANCED] " + desc;
+    else if (!txn->Matched())
+      desc = "[UNMATCHED] " + desc;
+
+    printf("%s %s\n", txn->Date().ToStrUTC().c_str(), desc.c_str());
+
+    for (auto& s : txn->Splits()) {
+      printf("  %18s %s to %s (%s)\n", s->GetAmount().ToStr().c_str(),
+          s->GetCoin()->Symbol().c_str(), s->GetAccount()->FullName().c_str(),
+          s->Memo().c_str());
+    }
+    printf("\n");
+  }
 }

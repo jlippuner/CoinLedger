@@ -39,6 +39,8 @@ class File {
   void PrintAccountTree() const;
 
   void PrintTransactions() const;
+  void PrintUnbalancedTransactions() const;
+  void PrintUnmatchedTransactions() const;
 
   UUIDMap<Balance> MakeAccountBalances() const;
 
@@ -111,7 +113,7 @@ class File {
  private:
   File() {}
 
-  void MakeCoinsBySymbolsMap();
+  void PrintTransactions(std::vector<std::shared_ptr<Transaction>> txns) const;
 
   // all the known coins
   std::unordered_map<std::string, std::shared_ptr<Coin>> coins_;
