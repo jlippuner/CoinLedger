@@ -21,6 +21,7 @@ void Balance::Print(std::string indent) const {
       });
 
   for (auto& c : coins) {
+    if (amounts_.at(c) == 0) continue;
     printf("%s%18s %s\n", indent.c_str(), amounts_.at(c).ToStr().c_str(),
         c->Symbol().c_str());
   }

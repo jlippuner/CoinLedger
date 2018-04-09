@@ -25,6 +25,7 @@
 #include "UUID.hpp"
 #include "File.hpp"
 
+#include "importers/Bittrex.hpp"
 #include "importers/CSV.hpp"
 #include "importers/GDAX.hpp"
 #include "importers/Kraken.hpp"
@@ -44,6 +45,7 @@
 %include "UUID.hpp"
 %include "File.hpp"
 
+%include "importers/Bittrex.hpp"
 %ignore CSV::operator[];
 %include "importers/CSV.hpp"
 %include "importers/GDAX.hpp"

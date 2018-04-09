@@ -25,6 +25,24 @@ std::string Datetime::ToStrUTC() const {
   return ToStr(utc, "%F %T");
 }
 
+Datetime Datetime::FromBittrex(const std::string& str) {
+  int year, month, day, hour, minute;
+  float second;
+  char ampm;
+  if (sscanf(str.c_str(), "%d/%d/%d %d:%d:%f %cM", &month, &day, &year, &hour,
+          &minute, &second, &ampm) != 7)
+    throw std::invalid_argument(
+        "Cannot parse '" + str + "' as a date and time");
+
+  if (hour == 12) hour = 0;
+  if ((ampm != 'A') && (ampm != 'P'))
+    throw std::invalid_argument(
+        "Expected AM or PM at the end of '" + str + "'");
+  if (ampm == 'P') hour += 12;
+
+  return MakeDatetime(year, month, day, hour, minute, second, true);
+}
+
 Datetime Datetime::Parse(const std::string& str, const char* format, bool UTC) {
   int year, month, day, hour, minute;
   float second;
@@ -33,6 +51,11 @@ Datetime Datetime::Parse(const std::string& str, const char* format, bool UTC) {
     throw std::invalid_argument(
         "Cannot parse '" + str + "' as a date and time");
 
+  return MakeDatetime(year, month, day, hour, minute, second, UTC);
+}
+
+Datetime Datetime::MakeDatetime(int year, int month, int day, int hour,
+    int minute, float second, bool UTC) {
   struct tm datetime;
   datetime.tm_year = year - 1900;
   datetime.tm_mon = month - 1;

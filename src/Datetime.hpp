@@ -28,6 +28,7 @@ class Datetime {
   static Datetime FromUTC(const std::string& str) {
     return Parse(str, "%d-%d-%d %d:%d:%f", true);
   }
+  static Datetime FromBittrex(const std::string& str);
 
   static size_t size() { return sizeof(time_t); }
   const void* Raw() const { return (void*)&time_; }
@@ -42,6 +43,8 @@ class Datetime {
   Datetime(time_t time) : time_(time) {}
 
   static Datetime Parse(const std::string& str, const char* format, bool UTC);
+  static Datetime MakeDatetime(int year, int month, int day, int hour,
+      int minute, float second, bool UTC);
 
   std::string ToStr(struct tm* time_tm, const char* format) const;
 

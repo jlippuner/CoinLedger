@@ -103,6 +103,6 @@ void GDAX::Import(const std::string& import_file, File* file,
     ++num_imported;
   }
 
-  printf("Imported %lu records and skipped %lu duplicates\n", num_imported,
-      num_duplicate);
+  printf("Imported %lu records and skipped %lu duplicates from %s\n",
+      num_imported, num_duplicate, import_file.c_str());
 }
