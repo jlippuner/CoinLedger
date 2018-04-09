@@ -25,6 +25,7 @@
 #include "UUID.hpp"
 #include "File.hpp"
 
+#include "importers/Binance.hpp"
 #include "importers/Bittrex.hpp"
 #include "importers/CSV.hpp"
 #include "importers/GDAX.hpp"
@@ -45,6 +46,7 @@
 %include "UUID.hpp"
 %include "File.hpp"
 
+%include "importers/Binance.hpp"
 %include "importers/Bittrex.hpp"
 %ignore CSV::operator[];
 %include "importers/CSV.hpp"

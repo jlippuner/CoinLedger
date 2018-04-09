@@ -1,4 +1,5 @@
 set(srcs
+  Binance.cpp
   Bittrex.cpp
   CSV.cpp
   GDAX.cpp
@@ -8,6 +9,7 @@ set(srcs
 add_CoinLedger_library(importers "${srcs}")
 
 set(SWIG_deps
+  Binance.hpp
   Bittrex.hpp
   CSV.hpp
   GDAX.hpp

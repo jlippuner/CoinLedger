@@ -484,7 +484,7 @@ void File::PrintUnbalancedTransactions() const {
   for (auto& e : transactions_) {
     if (!e.second->Balanced()) txns.push_back(e.second);
   }
-  PrintTransactions(txns);
+  PrintTransactions(txns, true);
 }
 
 void File::PrintUnmatchedTransactions() const {
@@ -492,7 +492,7 @@ void File::PrintUnmatchedTransactions() const {
   for (auto& e : transactions_) {
     if (!e.second->Matched()) txns.push_back(e.second);
   }
-  PrintTransactions(txns);
+  PrintTransactions(txns, true);
 }
 
 UUIDMap<Balance> File::MakeAccountBalances() const {
@@ -516,8 +516,8 @@ void File::PrintAccountBalances() const {
   GetAccount("Liabilities")->PrintTreeBalance(balances);
 }
 
-void File::PrintTransactions(
-    std::vector<std::shared_ptr<Transaction>> txns) const {
+void File::PrintTransactions(std::vector<std::shared_ptr<Transaction>> txns,
+    bool print_import_id) const {
   // sort transaction by account full name
   std::sort(
       txns.begin(), txns.end(), [](const std::shared_ptr<Transaction>& a,
@@ -533,6 +533,7 @@ void File::PrintTransactions(
       desc = "[UNMATCHED] " + desc;
 
     printf("%s %s\n", txn->Date().ToStrUTC().c_str(), desc.c_str());
+    if (print_import_id) printf("  %s\n", txn->Import_id().c_str());
 
     for (auto& s : txn->Splits()) {
       printf("  %18s %s to %s (%s)\n", s->GetAmount().ToStr().c_str(),

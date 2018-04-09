@@ -117,7 +117,8 @@ class File {
  private:
   File() {}
 
-  void PrintTransactions(std::vector<std::shared_ptr<Transaction>> txns) const;
+  void PrintTransactions(std::vector<std::shared_ptr<Transaction>> txns,
+      bool print_import_id = false) const;
 
   // all the known coins
   std::unordered_map<std::string, std::shared_ptr<Coin>> coins_;

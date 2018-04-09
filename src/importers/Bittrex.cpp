@@ -47,7 +47,7 @@ void Bittrex::Import(const std::string& import_file, File* file,
     }
 
     // get quote and base currencies
-    std::regex reg(R"(^([A-Z]+)-([A-Z]+)$)");
+    std::regex reg(R"(^([0-9A-Z]+)-([0-9A-Z]+)$)");
     std::smatch m;
     if (!std::regex_match(exch, m, reg))
       throw std::invalid_argument(
