@@ -1,6 +1,7 @@
 %module CoinLedger
 
 %include <stdint.i>
+%include <std_map.i>
 %include <std_string.i>
 %include <std_vector.i>
 %include <std_shared_ptr.i>
@@ -27,6 +28,7 @@
 
 #include "importers/Binance.hpp"
 #include "importers/Bittrex.hpp"
+#include "importers/CoreWallet.hpp"
 #include "importers/CSV.hpp"
 #include "importers/GDAX.hpp"
 #include "importers/Kraken.hpp"
@@ -34,6 +36,7 @@
 
 %template(vec_str) std::vector<std::string>;
 %template(vec_vec_str) std::vector<std::vector<std::string>>;
+%template(map_str_str) std::map<std::string, std::string>;
 
 %include "Account.hpp"
 %include "Amount.hpp"
@@ -48,6 +51,7 @@
 
 %include "importers/Binance.hpp"
 %include "importers/Bittrex.hpp"
+%include "importers/CoreWallet.hpp"
 %ignore CSV::operator[];
 %include "importers/CSV.hpp"
 %include "importers/GDAX.hpp"

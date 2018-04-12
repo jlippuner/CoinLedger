@@ -63,7 +63,7 @@ Balance Account::PrintTreeBalance(
       });
 
   if (children_.size() > 0) {
-    Balance sum;
+    Balance sum = balances.at(id_);
     for (auto c : children_)
       sum += c->PrintTreeBalance(balances, indent + "  ");
 

@@ -33,3 +33,13 @@ void PriceSource::AddAllCoins(File* file) {
         file, c["id"].asString(), c["name"].asString(), c["symbol"].asString());
   }
 }
+
+Amount PriceSource::GetFee(std::shared_ptr<const Coin> coin, std::string txn) {
+  if (coin->Id() == "bitcoin") {
+    auto fee_satoshi = GetURL("https://blockchain.info/q/txfee/" + txn);
+    Amount fee(std::stoi(fee_satoshi), -8);
+    return fee;
+  } else {
+    return 0;
+  }
+}

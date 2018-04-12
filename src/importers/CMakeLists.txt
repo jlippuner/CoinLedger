@@ -1,6 +1,7 @@
 set(srcs
   Binance.cpp
   Bittrex.cpp
+  CoreWallet.cpp
   CSV.cpp
   GDAX.cpp
   Kraken.cpp
@@ -11,6 +12,7 @@ add_CoinLedger_library(importers "${srcs}")
 set(SWIG_deps
   Binance.hpp
   Bittrex.hpp
+  CoreWallet.hpp
   CSV.hpp
   GDAX.hpp
   Kraken.hpp

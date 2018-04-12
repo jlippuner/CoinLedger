@@ -63,7 +63,7 @@ Datetime Datetime::MakeDatetime(int year, int month, int day, int hour,
   datetime.tm_hour = hour;
   datetime.tm_min = minute;
   datetime.tm_sec = second;
-  datetime.tm_isdst = 0;
+  if (UTC) datetime.tm_isdst = 0;
 
   if (UTC) {
     // unfortunately, C can only convert a struct tm to time_t by interpreting

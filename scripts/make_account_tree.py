@@ -30,16 +30,14 @@ Account.Create(f, "Binance",  False, exchanges, False)
 pools = Account.Create(f, "Mining Pools", True, assets, False)
 Account.Create(f, "MiningPoolHub.com", False, pools, False)
 Account.Create(f, "NiceHash.com", False, pools, True, f.GetCoinBySymbol("BTC"))
-Account.Create(f, "zpool.ca", False, pools, False)
 #Account.Create(f, "", False, pools, False)
 
 
 income = f.GetAccount("Income")
-mining = Account.Create(f, "Mining", True, income, False)
+mining = Account.Create(f, "Mining", False, income, False)
 Account.Create(f, "MiningPoolHub.com", False, mining, False)
-Account.Create(f, "NiceHash.com", False, mining, True, f.GetCoinBySymbol("BTC"))
 Account.Create(f, "zpool.ca", False, mining, False)
-Account.Create(f, "Ethermine.com", False, mining, True, f.GetCoinBySymbol("ETH"))
+Account.Create(f, "NiceHash.com", False, mining, True, f.GetCoinBySymbol("BTC"))
 #Account.Create(f, "", False, mining, False)
 
 equity = f.GetAccount("Equity")

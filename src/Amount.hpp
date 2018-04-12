@@ -36,6 +36,15 @@ class FixedPoint10 {
 
   FixedPoint10(int i) : val_(i * Denominator()) {}
 
+  FixedPoint10(int i, int magnitude) {
+    if (magnitude < -(int)D) {
+      throw std::invalid_argument("Cannot create FixedPoint10 with magnitude " +
+                                  std::to_string(magnitude) +
+                                  " and number of digits " + std::to_string(D));
+    }
+    val_ = i * ipow_(10, magnitude + D);
+  }
+
   FixedPoint10(double d) {
     double intpart;
     double frac = modf(d, &intpart);

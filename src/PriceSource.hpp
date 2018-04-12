@@ -8,6 +8,7 @@
 #include <curlpp/Options.hpp>
 #include <curlpp/cURLpp.hpp>
 
+#include "Amount.hpp"
 #include "Coin.hpp"
 
 class File;
@@ -28,6 +29,8 @@ class PriceSource {
   }
 
   static void AddAllCoins(File* file);
+
+  static Amount GetFee(std::shared_ptr<const Coin> coin, std::string txn);
 
  private:
   PriceSource() { curlpp::initialize(); }
