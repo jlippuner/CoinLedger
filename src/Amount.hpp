@@ -54,7 +54,7 @@ class FixedPoint10 {
   }
 
   static FixedPoint10 Parse(const std::string& str) {
-    std::regex reg(R"(^\s*(-?)([0-9]+)(?:\.([0-9]+)|\.)?\s*$)");
+    std::regex reg(R"(^\s*(-?|\+?)([0-9]+)(?:\.([0-9]+)|\.)?\s*$)");
     std::smatch m;
     if (!std::regex_match(str, m, reg))
       throw std::invalid_argument("'" + str + "' is not a valid amount");

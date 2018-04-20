@@ -35,11 +35,29 @@ void PriceSource::AddAllCoins(File* file) {
 }
 
 Amount PriceSource::GetFee(std::shared_ptr<const Coin> coin, std::string txn) {
-  if (coin->Id() == "bitcoin") {
-    auto fee_satoshi = GetURL("https://blockchain.info/q/txfee/" + txn);
-    Amount fee(std::stoi(fee_satoshi), -8);
-    return fee;
+  auto id = coin->Id();
+  if ((id == "bitcoin") || (id == "dash") || (id == "litecoin") ||
+      (id == "dogecoin")) {
+    // use chain.so
+    std::string url =
+        "https://chain.so/api/v2/tx/" + coin->Symbol() + "/" + txn;
+    auto json = PriceSource::GetURL(url);
+
+    Json::Reader reader;
+    Json::Value root;
+    if (!reader.parse(json, root)) {
+      printf("WARNING: Could not parse result from %s\n", url.c_str());
+      return 0;
+    }
+
+    if (root["status"].asString() != "success") {
+      printf("WARNING: API request failed: %s\n", url.c_str());
+      return 0;
+    }
+
+    return Amount::Parse(root["data"]["fee"].asString());
   } else {
+    printf("WARNING: Don't know how to get fee of coin '%s'\n", id.c_str());
     return 0;
   }
 }

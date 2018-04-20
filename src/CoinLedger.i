@@ -30,6 +30,7 @@
 #include "importers/Bittrex.hpp"
 #include "importers/CoreWallet.hpp"
 #include "importers/CSV.hpp"
+#include "importers/ElectrumWallet.hpp"
 #include "importers/GDAX.hpp"
 #include "importers/Kraken.hpp"
 %}
@@ -54,6 +55,7 @@
 %include "importers/CoreWallet.hpp"
 %ignore CSV::operator[];
 %include "importers/CSV.hpp"
+%include "importers/ElectrumWallet.hpp"
 %include "importers/GDAX.hpp"
 %include "importers/Kraken.hpp"
 

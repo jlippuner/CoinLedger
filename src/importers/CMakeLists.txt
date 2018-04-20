@@ -3,6 +3,7 @@ set(srcs
   Bittrex.cpp
   CoreWallet.cpp
   CSV.cpp
+  ElectrumWallet.cpp
   GDAX.cpp
   Kraken.cpp
 )
@@ -14,6 +15,7 @@ set(SWIG_deps
   Bittrex.hpp
   CoreWallet.hpp
   CSV.hpp
+  ElectrumWallet.hpp
   GDAX.hpp
   Kraken.hpp
 )
