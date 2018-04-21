@@ -192,7 +192,7 @@ File File::Open(const std::string& path) {
       uuid_t transaction_id = sqlite3_column_uuid(stmt, 1);
       uuid_t account_id = sqlite3_column_uuid(stmt, 2);
       std::string memo = sqlite3_column_str(stmt, 3);
-      Amount amount = Amount::FromRaw(sqlite3_column_int64(stmt, 4));
+      Amount amount = sqlite3_column_amount(stmt, 4);
       std::string coin_id = sqlite3_column_str(stmt, 5);
       std::string import_id = sqlite3_column_str(stmt, 6);
 
@@ -271,7 +271,7 @@ void File::Save(const std::string& path) const {
           transaction_id  BLOB(16),
           account_id      BLOB(16),
           memo            TEXT,
-          amount          BIGINT,
+          amount          BLOB,
           coin            TEXT,
           import_id       TEXT
         ) WITHOUT ROWID;
@@ -423,7 +423,7 @@ void File::Save(const std::string& path) const {
       SQL3(db, sqlite3_bind_uuid(stmt, 2, s->GetTransaction()->Id()));
       SQL3(db, sqlite3_bind_uuid(stmt, 3, s->GetAccount()->Id()));
       SQL3(db, sqlite3_bind_str(stmt, 4, s->Memo()));
-      SQL3(db, sqlite3_bind_int64(stmt, 5, s->GetAmount().Raw()));
+      SQL3(db, sqlite3_bind_amount(stmt, 5, s->GetAmount()));
       SQL3(db, sqlite3_bind_str(stmt, 6, s->GetCoin()->Id()));
       SQL3(db, sqlite3_bind_str(stmt, 7, s->Import_id()));
 

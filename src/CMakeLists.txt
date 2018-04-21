@@ -2,6 +2,7 @@ add_subdirectory(importers)
 
 set(srcs
   Account.cpp
+  Amount.cpp
   Balance.cpp
   Coin.cpp
   Datetime.cpp

@@ -1,32 +1,33 @@
-/// \file XRPAccount.cpp
+/// \file ETHAccount.cpp
 /// \author jlippuner
-/// \since Apr 20, 2018
+/// \since Apr 21, 2018
 ///
 /// \brief
 ///
 ///
 
-#include "XRPAccount.hpp"
+#include "ETHAccount.hpp"
 
 #include <json/reader.h>
 
 #include "PriceSource.hpp"
 
-void XRPAccount::Import(const std::string& xrp_account, File* file,
+void ETHAccount::Import(const std::string& eth_account, File* file,
     std::shared_ptr<Account> account, std::shared_ptr<Account> fee_account,
     const std::map<std::string, std::string>& transaction_associations) {
   if (!account->SingleCoin()) {
     throw std::invalid_argument(
-        "A Ripple account can only be imported into a single-coin account");
+        "An Ethereum account can only be imported into a single-coin account");
   }
   auto coin = account->GetCoin();
-  if (coin->Id() != "ripple")
+  if (coin->Id() != "ethereum")
     throw std::invalid_argument(
-        "A Ripple account can only be imported into an XRP account");
+        "An Ethereum account can only be imported into an ETH account");
 
   // retrieve the transactions for this account
-  std::string url = "https://data.ripple.com/v2/accounts/" + xrp_account +
-                    "/transactions?limit=1000";
+  std::string url =
+      "http://api.etherscan.io/api?module=account&action=txlist&address=" +
+      eth_account;
   auto json = PriceSource::GetURL(url);
 
   Json::Reader reader;
@@ -34,41 +35,47 @@ void XRPAccount::Import(const std::string& xrp_account, File* file,
   if (!reader.parse(json, root))
     throw std::runtime_error("Could not parse result from " + url);
 
-  if (root["result"].asString() != "success")
+  if ((root["status"].asString() != "1") &&
+      (root["message"].asString() != "OK"))
     throw std::runtime_error("API request failed, url = " + url);
 
-  int num = root["count"].asInt();
-  if (!root["marker"].isNull())
+  auto num = root["result"].size();
+  if (num >= 10000)
     throw std::runtime_error(
-        "XRP account has more than 1000 transactions, this is not implemented "
-        "yet");
+        "ETH account may have more than 10,000 transactions, this is not "
+        "implemented yet");
 
   size_t num_duplicate = 0;
   size_t num_imported = 0;
 
-  for (int i = 0; i < num; ++i) {
-    auto json_txn = root["transactions"][i];
+  for (unsigned int i = 0; i < num; ++i) {
+    auto json_txn = root["result"][i];
 
+    auto time = Datetime::FromUNIXTimestamp(
+        std::stoll(json_txn["timeStamp"].asString()));
     auto id = json_txn["hash"].asString();
-    auto time = Datetime::FromXRP(json_txn["date"].asString());
-    auto type = json_txn["tx"]["TransactionType"].asString();
-    Amount amount(std::stoi(json_txn["tx"]["Amount"].asString()), -6);
-    Amount fee(std::stoi(json_txn["tx"]["Fee"].asString()), -6);
-    auto src = json_txn["tx"]["Account"].asString();
-    auto dest = json_txn["tx"]["Destination"].asString();
+    auto src = json_txn["from"].asString();
+    auto dest = json_txn["to"].asString();
+    int128_t amount_int(json_txn["value"].asString());
+    int128_t gas_price_int(json_txn["gasPrice"].asString());
+    auto err = json_txn["isError"].asString();
+    int128_t gas_used_int(json_txn["gasUsed"].asString());
+    auto confirmations = std::stoll(json_txn["confirmations"].asString());
 
-    if (type != "Payment")
-      throw std::runtime_error("Unknown XRP transaction type '" + type + "'");
+    if ((err != "0") || (confirmations < 6)) continue;
+
+    Amount amount(amount_int, -18);
+    Amount fee(gas_price_int * gas_used_int, -18);
 
     std::string desc = "";
-    if (src == xrp_account) {
+    if (src == eth_account) {
       amount = -amount;
       desc = "Withdrawal";
-    } else if (dest == xrp_account) {
+    } else if (dest == eth_account) {
       desc = "Deposit";
     } else {
       throw std::runtime_error(
-          "XRP transaction does not involve the XRP account");
+          "ETH transaction does not involve the ETH account");
     }
 
     std::string tx_id = coin->Symbol() + "_" + id;
@@ -102,7 +109,6 @@ void XRPAccount::Import(const std::string& xrp_account, File* file,
     // we will create one or two splits, depending on the type of record
     std::vector<ProtoSplit> splits;
 
-    // main split in the XRP account
     // if this split sends out money, account for the fee
     if (amount < 0) {
       if (fee > 0) {
@@ -127,13 +133,13 @@ void XRPAccount::Import(const std::string& xrp_account, File* file,
         auto split = Split::Create(file, txn, proto_s);
         txn->AddSplit(split);
       }
-      // set the transaction date to the date of the XRP transaction
+      // set the transaction date to the date of the ETH transaction
       txn->SetDate(time);
     }
     ++num_imported;
   }
 
   printf(
-      "Imported %lu records and skipped %lu duplicates from XRP account %s\n",
-      num_imported, num_duplicate, xrp_account.c_str());
+      "Imported %lu records and skipped %lu duplicates from ETH account %s\n",
+      num_imported, num_duplicate, eth_account.c_str());
 }

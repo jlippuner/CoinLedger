@@ -38,6 +38,7 @@ class Datetime {
     return Parse(str, "%d-%d-%dT%d:%d:%f+00:00", true);
   }
   static Datetime FromBittrex(const std::string& str);
+  static Datetime FromUNIXTimestamp(time_t time) { return Datetime(time); }
 
   static size_t size() { return sizeof(time_t); }
   const void* Raw() const { return (void*)&time_; }

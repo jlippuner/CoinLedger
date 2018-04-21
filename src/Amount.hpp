@@ -14,11 +14,17 @@
 #include <regex>
 #include <string>
 
+#include <boost/multiprecision/cpp_int.hpp>
+
+#include <sqlite3.h>
+
 typedef uint32_t uint;
+typedef boost::multiprecision::checked_uint128_t uint128_t;
+typedef boost::multiprecision::checked_int128_t int128_t;
 
 namespace {
 
-uint64_t ipow_(uint base, uint exp) {
+uint128_t ipow_(uint base, uint exp) {
   return exp > 1 ? ipow_(base, (exp >> 1) + (exp & 1)) * ipow_(base, exp >> 1)
                  : base;
 }
@@ -27,91 +33,29 @@ uint64_t ipow_(uint base, uint exp) {
 // D is number of digits after the decimal point
 template <uint D>
 class FixedPoint10 {
-  static_assert(D < 17, "FixedPoint10 can have at most 17 digits");
+  static_assert(D <= 20, "FixedPoint10 can have at most 20 digits");
 
  public:
-  static uint64_t Denominator() { return ipow_(10, D); }
+  static uint128_t Denominator() { return ipow_(10, D); }
 
   FixedPoint10() : val_(0) {}
 
   FixedPoint10(int i) : val_(i * Denominator()) {}
 
-  FixedPoint10(int i, int magnitude) {
-    if (magnitude < -(int)D) {
-      throw std::invalid_argument("Cannot create FixedPoint10 with magnitude " +
-                                  std::to_string(magnitude) +
-                                  " and number of digits " + std::to_string(D));
-    }
-    val_ = i * ipow_(10, magnitude + D);
-  }
+  FixedPoint10(int128_t i, int magnitude);
 
-  FixedPoint10(double d) {
-    double intpart;
-    double frac = modf(d, &intpart);
-    int64_t val = (int64_t)intpart * Denominator();
-    int64_t int_frac = frac * (double)Denominator();
-    val_ = val + int_frac;
-  }
+  static FixedPoint10 Parse(const std::string& str);
 
-  static FixedPoint10 Parse(const std::string& str) {
-    std::regex reg(R"(^\s*(-?|\+?)([0-9]+)(?:\.([0-9]+)|\.)?\s*$)");
-    std::smatch m;
-    if (!std::regex_match(str, m, reg))
-      throw std::invalid_argument("'" + str + "' is not a valid amount");
-
-    // the match has 2 or 3 groups, first group is a negative sign or empty,
-    // 2nd group is the integer part, 3rd group, if present, is the fractional
-    // part
-    if ((m.size() != 3) && (m.size() != 4))
-      throw std::invalid_argument("'" + str + "' is not a valid amount");
-
-    bool negative = (m[1].str() == "-");
-    int64_t val = std::stoull(m[2].str());
-    val *= Denominator();
-
-    if (m.size() == 4) {
-      // we have a fractional part
-      auto frac = m[3].str();
-
-      if (frac.length() > D) {
-        // there are too many decimal digits, truncate to the first D
-        frac = frac.substr(0, D);
-      } else if (frac.length() < D) {
-        // there are too few decimal digits, add 0's up to length D
-        while (frac.length() < D) frac += "0";
-      }
-
-      // we now have a string of exactly D digits
-      if (frac.length() != D)
-        throw std::runtime_error("Something went wrong in FixedPoint10::Parse");
-
-      val += std::stoull(frac);
-    }
-
-    if (negative) val = -val;
-
+  static FixedPoint10 FromRaw(const void* ptr) {
+    int128_t val;
+    memcpy(&val, ptr, size());
     return FixedPoint10(val);
   }
 
-  static FixedPoint10 FromRaw(int64_t val) { return FixedPoint10(val); }
+  static size_t size() { return sizeof(int128_t); }
+  const void* Raw() const { return (void*)&val_; }
 
-  int64_t Raw() const { return val_; }
-
-  std::string ToStr() const {
-    uint64_t uint_part = labs(val_) / Denominator();
-    int64_t frac_part = labs(val_) - (uint_part * Denominator());
-    if (frac_part < 0)
-      throw std::runtime_error("Something went wrong in FixedPoint10::ToStr");
-
-    uint64_t ufrac = (uint64_t)frac_part;
-
-    char format[16];
-    char str[64];
-    sprintf(format, "%%lu.%%0%ulu", D);
-    sprintf(str, format, uint_part, ufrac);
-
-    return ((val_ < 0) ? "-" : "") + std::string(str);
-  }
+  std::string ToStr() const;
 
   // comparison operators
   bool operator==(const FixedPoint10& other) const {
@@ -145,13 +89,35 @@ class FixedPoint10 {
     val_ -= other.val_;
     return *this;
   }
+  FixedPoint10 operator*(const FixedPoint10& other) const {
+    return FixedPoint10(val_ * other.val_);
+  }
 
  private:
-  FixedPoint10(int64_t val) : val_(val) {}
+  FixedPoint10(int128_t val) : val_(val) {}
 
-  int64_t val_;
+  int128_t val_;
 };
 
-using Amount = FixedPoint10<10>;
+using Amount = FixedPoint10<20>;
+
+inline int sqlite3_bind_amount(
+    sqlite3_stmt* stmt, int pos, const Amount& amount) {
+  return sqlite3_bind_blob(
+      stmt, pos, amount.Raw(), Amount::size(), SQLITE_TRANSIENT);
+}
+
+inline Amount sqlite3_column_amount(sqlite3_stmt* stmt, int iCol) {
+  const void* ptr = sqlite3_column_blob(stmt, iCol);
+
+  if (ptr == nullptr) {
+    throw std::runtime_error("Database contains empty Amount");
+  } else {
+    if ((size_t)sqlite3_column_bytes(stmt, iCol) != Amount::size()) {
+      throw std::runtime_error("Invalid Amount in database");
+    }
+    return Amount::FromRaw(ptr);
+  }
+}
 
 #endif  // SRC_AMOUNT_HPP_

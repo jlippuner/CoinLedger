@@ -30,6 +30,7 @@
 #include "importers/Bittrex.hpp"
 #include "importers/CoreWallet.hpp"
 #include "importers/CSV.hpp"
+#include "importers/ETHAccount.hpp"
 #include "importers/ElectrumWallet.hpp"
 #include "importers/GDAX.hpp"
 #include "importers/Kraken.hpp"
@@ -56,9 +57,10 @@
 %include "importers/CoreWallet.hpp"
 %ignore CSV::operator[];
 %include "importers/CSV.hpp"
+%include "importers/ETHAccount.hpp"
 %include "importers/ElectrumWallet.hpp"
 %include "importers/GDAX.hpp"
 %include "importers/Kraken.hpp"
 %include "importers/XRPAccount.hpp"
 
-%template(Amount) FixedPoint10<10>;
+%template(Amount) FixedPoint10<20>;
