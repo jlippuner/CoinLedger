@@ -465,6 +465,47 @@ std::shared_ptr<const Coin> File::GetCoinBySymbol(std::string symbol) const {
   }
 }
 
+std::shared_ptr<Transaction> File::GetTransactionFromImportId(
+    const std::string& import_id, bool fail_if_not_exist) {
+  auto count = transactions_by_import_id_.count(import_id);
+  if (count == 0) {
+    if (fail_if_not_exist)
+      throw std::invalid_argument(
+          "No transaction with import id '" + import_id + "' exists");
+    else
+      return nullptr;
+  } else if (count == 1) {
+    return transactions_by_import_id_.find(import_id)->second;
+  }
+  throw std::invalid_argument("There are " + std::to_string(count) +
+                              " transactions with import id '" + import_id +
+                              "'");
+}
+
+void File::BalanceTransaction(
+    const std::string& txn_import_id, std::shared_ptr<const Account> account) {
+  // first check that the transaction exists, that it is unbalanced, and that it
+  // is a single coin transaction
+
+  auto txn = GetTransactionFromImportId(txn_import_id);
+
+  if (txn->Balanced())
+    throw std::invalid_argument(
+        "Transaction " + txn_import_id + " is already balanced");
+
+  auto coin = txn->GetCoin();
+  if (coin == nullptr)
+    throw std::invalid_argument(
+        "Cannot balance the multi-coin transaction " + txn_import_id);
+
+  Amount total = 0;
+  for (auto& sp : txn->Splits()) total += sp->GetAmount();
+
+  auto split = Split::Create(
+      this, txn, account, "", -total, coin, "auto_balance_" + txn_import_id);
+  txn->AddSplit(split);
+}
+
 void File::PrintAccountTree() const {
   GetAccount("Assets")->PrintTree();
   GetAccount("Equity")->PrintTree();
@@ -527,10 +568,10 @@ void File::PrintTransactions(std::vector<std::shared_ptr<Transaction>> txns,
 
   for (auto& txn : txns) {
     auto desc = txn->Description();
-    if (!txn->Balanced())
-      desc = "[UNBALANCED] " + desc;
-    else if (!txn->Matched())
+    if (!txn->Matched())
       desc = "[UNMATCHED] " + desc;
+    else if (!txn->Balanced())
+      desc = "[UNBALANCED] " + desc;
 
     printf("%s %s\n", txn->Date().ToStrUTC().c_str(), desc.c_str());
     if (print_import_id) printf("  %s\n", txn->Import_id().c_str());

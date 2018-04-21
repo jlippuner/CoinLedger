@@ -63,16 +63,9 @@ bool Transaction::Balanced() const {
 
   if (splits_.size() < 2) return false;
 
-  bool single_coin = true;
-  auto coin = splits_[0]->GetCoin()->Id();
-  for (size_t i = 1; i < splits_.size(); ++i) {
-    if (splits_[i]->GetCoin()->Id() != coin) {
-      single_coin = false;
-      break;
-    }
-  }
+  auto coin = GetCoin();
 
-  if (single_coin) {
+  if (coin != nullptr) {
     // make sure all the amounts add up to 0
     Amount sum = 0;
     for (auto& s : splits_) sum += s->GetAmount();
@@ -88,4 +81,15 @@ bool Transaction::HasSplitWithImportId(const std::string& import_id) const {
     if (s->Import_id() == import_id) return true;
   }
   return false;
+}
+
+std::shared_ptr<const Coin> Transaction::GetCoin() const {
+  auto coin = splits_[0]->GetCoin();
+  for (size_t i = 1; i < splits_.size(); ++i) {
+    if (splits_[i]->GetCoin()->Id() != coin->Id()) {
+      return nullptr;
+    }
+  }
+
+  return coin;
 }

@@ -48,6 +48,10 @@ class Transaction {
   // return true if the transaction has a split with this import id
   bool HasSplitWithImportId(const std::string& import_id) const;
 
+  // if all splits have the same coin, return that coin, otherwise return
+  // nullptr
+  std::shared_ptr<const Coin> GetCoin() const;
+
  private:
   friend class File;
 

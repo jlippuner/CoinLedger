@@ -36,6 +36,18 @@ class File {
 
   void Save(const std::string& path) const;
 
+  // get the transaction with the given import id, if there is no such
+  // transaction, return nullptr, unless fail_if_not_exist is true, in which
+  // case an exception is thrown; if there are multiple transactions with this
+  // import id, throw an exception
+  std::shared_ptr<Transaction> GetTransactionFromImportId(
+      const std::string& import_id, bool fail_if_not_exist = false);
+
+  // balance the unbalanced, single-coin transaction identified by the import id
+  // by adding a split to the given account that will balance the transaction
+  void BalanceTransaction(
+      const std::string& txn_import_id, std::shared_ptr<const Account> account);
+
   void PrintAccountTree() const;
 
   void PrintTransactions() const;

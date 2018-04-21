@@ -38,12 +38,18 @@ mining = Account.Create(f, "Mining", False, income, False)
 Account.Create(f, "MiningPoolHub.com", False, mining, False)
 Account.Create(f, "zpool.ca", False, mining, False)
 Account.Create(f, "NiceHash.com", False, mining, True, f.GetCoinBySymbol("BTC"))
+Account.Create(f, "ethermine.org", False, mining, True, f.GetCoinBySymbol("ETH"))
 #Account.Create(f, "", False, mining, False)
 
 equity = f.GetAccount("Equity")
 Account.Create(f, "USD Investment", False, equity, True, f.GetCoinBySymbol("USD"))
 
 expenses = f.GetAccount("Expenses")
+
+Account.Create(f, "Mining Equipment", False, expenses, False)
+
+icos = Account.Create(f, "Initial Coin Offerings", True, expenses, False)
+Account.Create(f, "Exscudo", False, icos, False)
 
 transaction_fees = Account.Create(f, "Transaction Fees", False, expenses, False)
 Account.Create(f, "Kraken Withdrawals", False, transaction_fees, False)

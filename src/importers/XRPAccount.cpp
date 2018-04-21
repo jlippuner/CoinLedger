@@ -79,17 +79,8 @@ void XRPAccount::Import(const std::string& xrp_account, File* file,
     std::string split_id = coin->Symbol() + "_" + desc + "_" + id;
     std::string tx_description = coin->Symbol() + " " + desc;
 
-    std::shared_ptr<Transaction> txn;
-
     // check if a transaction with this import_id already exists
-    if (file->TransactionsByImportId().count(tx_id) > 0) {
-      // transaction already exists
-      if (file->TransactionsByImportId().count(tx_id) == 1)
-        txn = file->TransactionsByImportId().find(tx_id)->second;
-      else
-        throw std::runtime_error(
-            "Found multiple transaction with import id '" + tx_id + "'");
-    }
+    auto txn = file->GetTransactionFromImportId(tx_id);
 
     // if a transaction with this import id already exists, check if it has a
     // split with this split id, in which case we don't need to duplicate this
