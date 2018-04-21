@@ -41,6 +41,10 @@
 %template(vec_vec_str) std::vector<std::vector<std::string>>;
 %template(map_str_str) std::map<std::string, std::string>;
 
+%ignore std::vector<ProtoSplit>::vector(size_type);
+%ignore std::vector<ProtoSplit>::resize(size_type);
+%template(vec_ProtoSplit) std::vector<ProtoSplit>;
+
 %include "Account.hpp"
 %include "Amount.hpp"
 %include "Balance.hpp"

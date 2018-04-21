@@ -34,6 +34,10 @@ Account.Create(f, "NiceHash.com", False, pools, True, f.GetCoinBySymbol("BTC"))
 
 
 income = f.GetAccount("Income")
+
+forks = Account.Create(f, "Hard Forks", False, income, False)
+Account.Create(f, "Bitcoin", False, forks, False)
+
 mining = Account.Create(f, "Mining", False, income, False)
 Account.Create(f, "MiningPoolHub.com", False, mining, False)
 Account.Create(f, "zpool.ca", False, mining, False)
