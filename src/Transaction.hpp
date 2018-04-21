@@ -32,6 +32,8 @@ class Transaction {
   const std::string& Import_id() const { return import_id_; }
   const std::vector<std::shared_ptr<Split>>& Splits() const { return splits_; }
 
+  void SetDate(Datetime date) { date_ = date; }
+
   void AddSplit(std::shared_ptr<Split> split) { splits_.push_back(split); }
 
   // return true if the transaction has matched splits, i.e. there is a positive

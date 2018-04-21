@@ -142,6 +142,7 @@ void CoreWallet::Import(const std::string& import_file, File* file,
         auto split = Split::Create(file, txn, proto_s);
         txn->AddSplit(split);
       }
+      txn->SetDate(time);
     }
     ++num_imported;
   }

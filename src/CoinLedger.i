@@ -33,6 +33,7 @@
 #include "importers/ElectrumWallet.hpp"
 #include "importers/GDAX.hpp"
 #include "importers/Kraken.hpp"
+#include "importers/XRPAccount.hpp"
 %}
 
 %template(vec_str) std::vector<std::string>;
@@ -58,5 +59,6 @@
 %include "importers/ElectrumWallet.hpp"
 %include "importers/GDAX.hpp"
 %include "importers/Kraken.hpp"
+%include "importers/XRPAccount.hpp"
 
 %template(Amount) FixedPoint10<10>;

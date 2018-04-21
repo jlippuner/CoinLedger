@@ -34,6 +34,9 @@ class Datetime {
   static Datetime FromElectrumLocal(const std::string& str) {
     return Parse(str + ":00.000", "%d-%d-%d %d:%d:%f", false);
   }
+  static Datetime FromXRP(const std::string& str) {
+    return Parse(str, "%d-%d-%dT%d:%d:%f+00:00", true);
+  }
   static Datetime FromBittrex(const std::string& str);
 
   static size_t size() { return sizeof(time_t); }
