@@ -61,3 +61,24 @@ Amount PriceSource::GetFee(std::shared_ptr<const Coin> coin, std::string txn) {
     return 0;
   }
 }
+
+std::unordered_map<std::string, Amount> PriceSource::GetUSDPrices() {
+  auto json = PriceSource::GetURL(coin_list_url);
+
+  Json::Reader reader;
+  Json::Value root;
+  if (!reader.parse(json, root))
+    throw std::runtime_error("Could not parse result from " + coin_list_url);
+
+  std::unordered_map<std::string, Amount> prices;
+  prices["us-dollar"] = 1;
+
+  for (auto& c : root) {
+    std::string price = "0";
+    if (!c["price_usd"].isNull()) price = c["price_usd"].asString();
+
+    prices[c["id"].asString()] = Amount::Parse(price);
+  }
+
+  return prices;
+}

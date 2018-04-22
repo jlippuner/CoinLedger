@@ -51,10 +51,11 @@ void Account::PrintTree(std::string indent) const {
   for (auto c : children_) c->PrintTree(indent + "  ");
 }
 
-Balance Account::PrintTreeBalance(
-    const UUIDMap<Balance>& balances, std::string indent) const {
+Balance Account::PrintTreeBalance(const UUIDMap<Balance>& balances,
+    std::string indent, bool flip_sign,
+    const std::unordered_map<std::string, Amount>* prices) const {
   printf("%s%s\n", indent.c_str(), name_.c_str());
-  balances.at(id_).Print(indent + "    ");
+  balances.at(id_).Print(indent + "    ", flip_sign, prices);
 
   // sort children by name
   std::sort(children_.begin(), children_.end(),
@@ -65,10 +66,10 @@ Balance Account::PrintTreeBalance(
   if (children_.size() > 0) {
     Balance sum = balances.at(id_);
     for (auto c : children_)
-      sum += c->PrintTreeBalance(balances, indent + "  ");
+      sum += c->PrintTreeBalance(balances, indent + "  ", flip_sign, prices);
 
     printf("%sTOTAL %s\n", indent.c_str(), name_.c_str());
-    sum.Print(indent + "    ");
+    sum.Print(indent + "    ", flip_sign, prices);
 
     return sum;
   } else {

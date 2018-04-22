@@ -549,12 +549,13 @@ UUIDMap<Balance> File::MakeAccountBalances() const {
 
 void File::PrintAccountBalances() const {
   auto balances = MakeAccountBalances();
+  auto prices = PriceSource::GetUSDPrices();
 
-  GetAccount("Assets")->PrintTreeBalance(balances);
-  GetAccount("Equity")->PrintTreeBalance(balances);
-  GetAccount("Expenses")->PrintTreeBalance(balances);
-  GetAccount("Income")->PrintTreeBalance(balances);
-  GetAccount("Liabilities")->PrintTreeBalance(balances);
+  GetAccount("Assets")->PrintTreeBalance(balances, "", false, &prices);
+  GetAccount("Equity")->PrintTreeBalance(balances, "", true, &prices);
+  GetAccount("Expenses")->PrintTreeBalance(balances, "", false, &prices);
+  GetAccount("Income")->PrintTreeBalance(balances, "", true, &prices);
+  GetAccount("Liabilities")->PrintTreeBalance(balances, "", true, &prices);
 }
 
 void File::PrintTransactions(std::vector<std::shared_ptr<Transaction>> txns,

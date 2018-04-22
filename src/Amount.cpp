@@ -74,15 +74,11 @@ std::string FixedPoint10<D>::ToStr() const {
   uint128_t ufrac = (uint128_t)frac_part;
 
   std::stringstream num;
-  num << ((val_ < 0) ? "-" : " ");
+  if (val_ < 0) num << "-";
   num << uint_part;
   num << ".";
   num << std::right << std::setfill('0') << std::setw(D) << ufrac;
-
-  std::stringstream out;
-  out << std::right << std::setfill(' ') << std::setw(D + 12) << num.str();
-
-  return out.str();
+  return num.str();
 }
 
 // explicit template instantiation

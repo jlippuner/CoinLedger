@@ -2,6 +2,7 @@
 #define SRC_PRICESOURCE_HPP_
 
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <curlpp/Easy.hpp>
@@ -31,6 +32,8 @@ class PriceSource {
   static void AddAllCoins(File* file);
 
   static Amount GetFee(std::shared_ptr<const Coin> coin, std::string txn);
+
+  static std::unordered_map<std::string, Amount> GetUSDPrices();
 
  private:
   PriceSource() { curlpp::initialize(); }

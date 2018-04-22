@@ -33,7 +33,8 @@ class Balance {
     AddAmount(split->GetAmount(), split->GetCoin());
   }
 
-  void Print(std::string indent = "") const;
+  void Print(std::string indent, bool flip_sign,
+      const std::unordered_map<std::string, Amount>* prices) const;
 
   // arithmetic operators
   Balance& operator+=(const Balance& other) {

@@ -21,6 +21,7 @@
 typedef uint32_t uint;
 typedef boost::multiprecision::checked_uint128_t uint128_t;
 typedef boost::multiprecision::checked_int128_t int128_t;
+typedef boost::multiprecision::checked_int256_t int256_t;
 
 namespace {
 
@@ -90,7 +91,11 @@ class FixedPoint10 {
     return *this;
   }
   FixedPoint10 operator*(const FixedPoint10& other) const {
-    return FixedPoint10(val_ * other.val_);
+    int256_t a(val_);
+    int256_t b(other.val_);
+    int256_t prod = a * b;
+    prod /= Denominator();
+    return FixedPoint10((int128_t)prod);
   }
 
  private:

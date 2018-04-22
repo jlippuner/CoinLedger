@@ -41,8 +41,9 @@ class Account {
 
   // print the balance of this account, all the sub account balance trees, and
   // then print the total balance in this account and return the total balance
-  Balance PrintTreeBalance(
-      const UUIDMap<Balance>& balances, std::string indent = "") const;
+  Balance PrintTreeBalance(const UUIDMap<Balance>& balances, std::string indent,
+      bool flip_sign,
+      const std::unordered_map<std::string, Amount>* prices) const;
 
  private:
   friend class File;
