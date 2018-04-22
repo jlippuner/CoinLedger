@@ -56,6 +56,11 @@ void CoreWallet::Import(const std::string& import_file, File* file,
       throw std::runtime_error("Unknown Core Wallet type '" + type + "'");
     }
 
+    // The DASH core wallet adds "-000" to the end of the transaction hash,
+    // remove this
+    if (coin->Id() == "dash")
+      if (id.substr(id.size() - 4) == "-000") id = id.substr(0, id.size() - 4);
+
     std::string tx_id = coin->Symbol() + "_" + id;
     if (transaction_associations.count(id) > 0) {
       tx_id = transaction_associations.at(id);

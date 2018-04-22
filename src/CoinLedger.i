@@ -34,6 +34,7 @@
 #include "importers/ElectrumWallet.hpp"
 #include "importers/GDAX.hpp"
 #include "importers/Kraken.hpp"
+#include "importers/MiningPoolHub.hpp"
 #include "importers/XRPAccount.hpp"
 %}
 
@@ -65,6 +66,7 @@
 %include "importers/ElectrumWallet.hpp"
 %include "importers/GDAX.hpp"
 %include "importers/Kraken.hpp"
+%include "importers/MiningPoolHub.hpp"
 %include "importers/XRPAccount.hpp"
 
 %template(Amount) FixedPoint10<20>;

@@ -39,6 +39,9 @@ class Datetime {
   }
   static Datetime FromBittrex(const std::string& str);
   static Datetime FromUNIXTimestamp(time_t time) { return Datetime(time); }
+  static Datetime FromMiningPoolHubUTC(const std::string& str) {
+    return Parse(str, "%d-%d-%d %d:%d:%f (UTC)", true);
+  }
 
   static size_t size() { return sizeof(time_t); }
   const void* Raw() const { return (void*)&time_; }

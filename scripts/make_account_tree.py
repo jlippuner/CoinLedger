@@ -57,6 +57,7 @@ Account.Create(f, "Exscudo", False, icos, False)
 
 transaction_fees = Account.Create(f, "Transaction Fees", False, expenses, False)
 Account.Create(f, "Kraken Withdrawals", False, transaction_fees, False)
+Account.Create(f, "MiningPoolHub.com Withdrawals", False, transaction_fees, False)
 
 trading_fees = Account.Create(f, "Trading Fees", True, expenses, False)
 Account.Create(f, "GDAX",     False, trading_fees, False)

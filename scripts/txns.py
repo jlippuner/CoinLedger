@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
+import sys
 from CoinLedger import *
 
-f = File.Open("import.sqlite3")
+f = File.Open(sys.argv[1])
 f.PrintTransactions()

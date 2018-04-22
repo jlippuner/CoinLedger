@@ -7,6 +7,7 @@ set(srcs
   ElectrumWallet.cpp
   GDAX.cpp
   Kraken.cpp
+  MiningPoolHub.cpp
   XRPAccount.cpp
 )
 
@@ -21,6 +22,7 @@ set(SWIG_deps
   ElectrumWallet.hpp
   GDAX.hpp
   Kraken.hpp
+  MiningPoolHub.hpp
   XRPAccount.hpp
 )
 
