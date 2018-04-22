@@ -42,6 +42,9 @@ class Datetime {
   static Datetime FromMiningPoolHubUTC(const std::string& str) {
     return Parse(str, "%d-%d-%d %d:%d:%f (UTC)", true);
   }
+  static Datetime FromNiceHashLocal(const std::string& str) {
+    return Parse(str, "%d-%d-%d %d:%d:%f", false);
+  }
 
   static size_t size() { return sizeof(time_t); }
   const void* Raw() const { return (void*)&time_; }

@@ -35,6 +35,7 @@
 #include "importers/GDAX.hpp"
 #include "importers/Kraken.hpp"
 #include "importers/MiningPoolHub.hpp"
+#include "importers/NiceHash.hpp"
 #include "importers/XRPAccount.hpp"
 %}
 
@@ -67,6 +68,7 @@
 %include "importers/GDAX.hpp"
 %include "importers/Kraken.hpp"
 %include "importers/MiningPoolHub.hpp"
+%include "importers/NiceHash.hpp"
 %include "importers/XRPAccount.hpp"
 
 %template(Amount) FixedPoint10<20>;

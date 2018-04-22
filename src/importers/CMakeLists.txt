@@ -8,6 +8,7 @@ set(srcs
   GDAX.cpp
   Kraken.cpp
   MiningPoolHub.cpp
+  NiceHash.cpp
   XRPAccount.cpp
 )
 
@@ -23,6 +24,7 @@ set(SWIG_deps
   GDAX.hpp
   Kraken.hpp
   MiningPoolHub.hpp
+  NiceHash.hpp
   XRPAccount.hpp
 )
 
