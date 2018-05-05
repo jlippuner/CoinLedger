@@ -38,8 +38,8 @@
 #include "importers/NiceHash.hpp"
 #include "importers/XRPAccount.hpp"
 
-#include "taxes/Acquisition.hpp"
-#include "taxes/Basis.hpp"
+#include "taxes/Inventory.hpp"
+#include "taxes/Taxes.hpp"
 %}
 
 %template(vec_str) std::vector<std::string>;
@@ -75,7 +75,7 @@
 %include "importers/NiceHash.hpp"
 %include "importers/XRPAccount.hpp"
 
-%include "taxes/Acquisition.hpp"
-%include "taxes/Basis.hpp"
+%include "taxes/Inventory.hpp"
+%include "taxes/Taxes.hpp"
 
 %template(Amount) FixedPoint10<20>;

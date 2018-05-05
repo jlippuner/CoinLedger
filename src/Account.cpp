@@ -39,6 +39,14 @@ std::string Account::MakeFullName(
   }
 }
 
+bool Account::IsContainedIn(std::shared_ptr<const Account> parent) const {
+  if (parent->Id() == id_) return true;
+  if (parent_ != nullptr)
+    return parent_->IsContainedIn(parent);
+  else
+    return false;
+}
+
 void Account::PrintTree(std::string indent) const {
   printf("%s%s\n", indent.c_str(), name_.c_str());
 

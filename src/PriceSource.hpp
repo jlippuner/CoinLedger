@@ -11,6 +11,7 @@
 
 #include "Amount.hpp"
 #include "Coin.hpp"
+#include "Datetime.hpp"
 
 class File;
 
@@ -34,6 +35,8 @@ class PriceSource {
   static Amount GetFee(std::shared_ptr<const Coin> coin, std::string txn);
 
   static std::unordered_map<std::string, Amount> GetUSDPrices();
+
+  static Amount GetUSDPrice(Datetime time, std::shared_ptr<const Coin> coin);
 
  private:
   PriceSource() { curlpp::initialize(); }

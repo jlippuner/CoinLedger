@@ -52,11 +52,17 @@ class Datetime {
   std::string ToStrLocalFile() const;
   // std::string ToStrLocal() const;
   std::string ToStrUTC() const;
+  std::string ToStrDayUTC() const;
 
-  // get the day of the datetime
-  Datetime Day() const;
+  // get the end of the day
+  Datetime EndOfDay() const;
 
-  bool operator<(const Datetime& other) { return time_ < other.time_; }
+  bool operator==(const Datetime& other) const { return time_ == other.time_; }
+  bool operator!=(const Datetime& other) const { return time_ != other.time_; }
+  bool operator<(const Datetime& other) const { return time_ < other.time_; }
+  bool operator>(const Datetime& other) const { return time_ > other.time_; }
+  bool operator<=(const Datetime& other) const { return time_ <= other.time_; }
+  bool operator>=(const Datetime& other) const { return time_ >= other.time_; }
 
  private:
   Datetime(time_t time) : time_(time) {}
@@ -88,7 +94,5 @@ inline Datetime sqlite3_column_datetime(sqlite3_stmt* stmt, int iCol) {
     return Datetime::FromRaw(ptr);
   }
 }
-
-inline bool operator<(const Datetime& a, const Datetime& b) { return a < b; }
 
 #endif  // SRC_DATETIME_HPP_

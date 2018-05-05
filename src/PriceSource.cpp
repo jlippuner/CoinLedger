@@ -71,7 +71,7 @@ std::unordered_map<std::string, Amount> PriceSource::GetUSDPrices() {
     throw std::runtime_error("Could not parse result from " + coin_list_url);
 
   std::unordered_map<std::string, Amount> prices;
-  prices["us-dollar"] = 1;
+  prices[File::USD_id()] = 1;
 
   for (auto& c : root) {
     std::string price = "0";
@@ -81,4 +81,10 @@ std::unordered_map<std::string, Amount> PriceSource::GetUSDPrices() {
   }
 
   return prices;
+}
+
+Amount PriceSource::GetUSDPrice(
+    Datetime time, std::shared_ptr<const Coin> coin) {
+  // TODO
+  return 0;
 }

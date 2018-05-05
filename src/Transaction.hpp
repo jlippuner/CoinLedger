@@ -52,6 +52,8 @@ class Transaction {
   // nullptr
   std::shared_ptr<const Coin> GetCoin() const;
 
+  void Print(const bool print_import_id) const;
+
  private:
   friend class File;
 

@@ -93,3 +93,21 @@ std::shared_ptr<const Coin> Transaction::GetCoin() const {
 
   return coin;
 }
+
+void Transaction::Print(const bool print_import_id) const {
+  auto desc = Description();
+  if (!Matched())
+    desc = "[UNMATCHED] " + desc;
+  else if (!Balanced())
+    desc = "[UNBALANCED] " + desc;
+
+  printf("%s %s\n", Date().ToStrUTC().c_str(), desc.c_str());
+  if (print_import_id) printf("  %s\n", Import_id().c_str());
+
+  for (auto& s : Splits()) {
+    printf("  %18s %s to %s (%s)\n", s->GetAmount().ToStr().c_str(),
+        s->GetCoin()->Symbol().c_str(), s->GetAccount()->FullName().c_str(),
+        s->Memo().c_str());
+  }
+  printf("\n");
+}

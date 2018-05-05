@@ -1,12 +1,13 @@
 set(srcs
-  Basis.cpp
+  Inventory.cpp
+  Taxes.cpp
 )
 
 add_CoinLedger_library(taxes "${srcs}")
 
 set(SWIG_deps
-  Acquisition.hpp
-  Basis.hpp
+  Inventory.hpp
+  Taxes.hpp
 )
 
 add_SWIG_dependencies("${SWIG_deps}")

@@ -43,13 +43,18 @@ std::string Datetime::ToStrUTC() const {
   return ToStr(utc, "%F %T");
 }
 
-Datetime Datetime::Day() const {
+std::string Datetime::ToStrDayUTC() const {
+  struct tm* utc = gmtime(&time_);
+  return ToStr(utc, "%F");
+}
+
+Datetime Datetime::EndOfDay() const {
   // if we don't want to account for leap seconds, we could just round down the
   // UNIX timestamp to a multiple of 86400, but we'll use struct tm instead to
   // account for leap seconds
   struct tm* utc = gmtime(&time_);
   return MakeDatetime(
-      utc->tm_year + 1900, utc->tm_mon + 1, utc->tm_mday, 0, 0, 0, true);
+      utc->tm_year + 1900, utc->tm_mon + 1, utc->tm_mday, 23, 59, 59, true);
 }
 
 Datetime Datetime::Parse(const std::string& str, const char* format, bool UTC) {

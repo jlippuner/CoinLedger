@@ -34,8 +34,9 @@ class Account {
 
   static std::string MakeFullName(
       std::shared_ptr<const Account> parent, std::string name);
-
   std::string FullName() const { return MakeFullName(parent_, name_); }
+
+  bool IsContainedIn(std::shared_ptr<const Account> parent) const;
 
   void PrintTree(std::string indent = "") const;
 
