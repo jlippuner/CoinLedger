@@ -10,21 +10,6 @@
 
 #include <stdexcept>
 
-std::string Datetime::ToStrLocalFile() const {
-  struct tm* local_time = localtime(&time_);
-  return ToStr(local_time, "%F_%T");
-}
-
-std::string Datetime::ToStrLocal() const {
-  struct tm* local_time = localtime(&time_);
-  return ToStr(local_time, "%F %T");
-}
-
-std::string Datetime::ToStrUTC() const {
-  struct tm* utc = gmtime(&time_);
-  return ToStr(utc, "%F %T");
-}
-
 Datetime Datetime::FromBittrex(const std::string& str) {
   int year, month, day, hour, minute;
   float second;
@@ -41,6 +26,30 @@ Datetime Datetime::FromBittrex(const std::string& str) {
   if (ampm == 'P') hour += 12;
 
   return MakeDatetime(year, month, day, hour, minute, second, true);
+}
+
+std::string Datetime::ToStrLocalFile() const {
+  struct tm* local_time = localtime(&time_);
+  return ToStr(local_time, "%F_%T");
+}
+
+// std::string Datetime::ToStrLocal() const {
+//   struct tm* local_time = localtime(&time_);
+//   return ToStr(local_time, "%F %T");
+// }
+
+std::string Datetime::ToStrUTC() const {
+  struct tm* utc = gmtime(&time_);
+  return ToStr(utc, "%F %T");
+}
+
+Datetime Datetime::Day() const {
+  // if we don't want to account for leap seconds, we could just round down the
+  // UNIX timestamp to a multiple of 86400, but we'll use struct tm instead to
+  // account for leap seconds
+  struct tm* utc = gmtime(&time_);
+  return MakeDatetime(
+      utc->tm_year + 1900, utc->tm_mon + 1, utc->tm_mday, 0, 0, 0, true);
 }
 
 Datetime Datetime::Parse(const std::string& str, const char* format, bool UTC) {

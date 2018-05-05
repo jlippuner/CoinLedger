@@ -37,6 +37,9 @@
 #include "importers/MiningPoolHub.hpp"
 #include "importers/NiceHash.hpp"
 #include "importers/XRPAccount.hpp"
+
+#include "taxes/Acquisition.hpp"
+#include "taxes/Basis.hpp"
 %}
 
 %template(vec_str) std::vector<std::string>;
@@ -51,6 +54,7 @@
 %include "Amount.hpp"
 %include "Balance.hpp"
 %include "Coin.hpp"
+%ignore operator<;
 %include "Datetime.hpp"
 %include "PriceSource.hpp"
 %include "Split.hpp"
@@ -70,5 +74,8 @@
 %include "importers/MiningPoolHub.hpp"
 %include "importers/NiceHash.hpp"
 %include "importers/XRPAccount.hpp"
+
+%include "taxes/Acquisition.hpp"
+%include "taxes/Basis.hpp"
 
 %template(Amount) FixedPoint10<20>;

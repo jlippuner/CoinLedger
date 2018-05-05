@@ -97,6 +97,13 @@ class FixedPoint10 {
     prod /= Denominator();
     return FixedPoint10((int128_t)prod);
   }
+  FixedPoint10 operator/(const FixedPoint10& other) const {
+    int256_t a(val_);
+    int256_t b(other.val_);
+    int256_t quot = a * Denominator();
+    quot /= b;
+    return FixedPoint10((int128_t)quot);
+  }
 
  private:
   FixedPoint10(int128_t val) : val_(val) {}
