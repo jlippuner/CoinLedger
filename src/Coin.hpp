@@ -18,12 +18,16 @@ class File;
 
 class Coin {
  public:
+  static std::string USD_id() { return "us-dollar"; }
+
   static std::shared_ptr<Coin> Create(
       File* file, std::string id, std::string name, std::string symbol);
 
   std::string Id() const { return id_; }
   const std::string& Name() const { return name_; }
   const std::string& Symbol() const { return symbol_; }
+
+  bool IsUSD() const { return id_ == USD_id(); }
 
  private:
   friend class File;

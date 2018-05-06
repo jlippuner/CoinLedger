@@ -5,9 +5,10 @@
 
 #include "PriceSource.hpp"
 
-Taxes::Taxes(const File& file, Datetime until, Accnt assets,
-    Accnt expense_mining_fees, Accnt expense_trading_fees,
-    Accnt expense_transaction_fees, Accnt income_forks, Accnt income_mining) {
+Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt exchanges,
+    Accnt equity, Accnt expenses, Accnt expense_mining_fees,
+    Accnt expense_trading_fees, Accnt expense_transaction_fees,
+    Accnt income_forks, Accnt income_mining) {
   // collect all mining income from the same day into one tax event
   std::unordered_map<std::string, std::map<Datetime, TaxEvent>> mining;
 
@@ -20,16 +21,37 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets,
     auto txn = itm.second;
     if (txn->Date() > until) continue;
 
-    // copy the splits of this transaction into a list, we will erase splits
-    // from this list as we consume splits
-    std::list<std::shared_ptr<const Split>> splits(
-        txn->Splits().begin(), txn->Splits().end());
+    // copy the splits of this transaction into a list and combine splits of the
+    // same coin in the same account, we will erase splits from this list as we
+    // consume splits
+    std::list<std::shared_ptr<ProtoSplit>> splits;
+
+    for (auto& in_sp : txn->Splits()) {
+      // check if a split with the same account and coin already exists
+      bool already_exists = false;
+      for (auto& sp : splits) {
+        if ((in_sp->GetAccount()->Id() == sp->account_->Id()) &&
+            (in_sp->GetCoin()->Id() == sp->coin_->Id())) {
+          sp->amount_ += in_sp->GetAmount();
+          already_exists = true;
+          break;
+        }
+      }
+
+      if (!already_exists) {
+        splits.push_back(
+            std::shared_ptr<ProtoSplit>(new ProtoSplit(in_sp->GetAccount(), "",
+                in_sp->GetAmount(), in_sp->GetCoin(), "")));
+      }
+    }
+
+    auto coin = txn->GetCoin();
 
     // check if this is mining income
     {
-      std::shared_ptr<const Split> mining_income_split = nullptr;
+      std::shared_ptr<const ProtoSplit> mining_income_split = nullptr;
       for (auto it = splits.begin(); it != splits.end(); ++it) {
-        if ((*it)->GetAccount()->IsContainedIn(income_mining)) {
+        if ((*it)->account_->IsContainedIn(income_mining)) {
           mining_income_split = *it;
           splits.erase(it);
           break;
@@ -38,24 +60,23 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets,
 
       if (mining_income_split != nullptr) {
         // this is mining income, make sure this is a single-coin transaction
-        auto coin = txn->GetCoin();
         if (coin == nullptr) {
           txn->Print(true);
           throw std::runtime_error("Got a multi-coin mining transaction");
         }
 
         // we expect to have an asset split and maybe a mining fee split
-        std::shared_ptr<const Split> asset = nullptr;
-        std::shared_ptr<const Split> fee = nullptr;
+        std::shared_ptr<const ProtoSplit> asset = nullptr;
+        std::shared_ptr<const ProtoSplit> fee = nullptr;
 
         auto it = splits.begin();
         while (it != splits.end()) {
-          if ((*it)->GetAccount()->IsContainedIn(assets)) {
+          if ((*it)->account_->IsContainedIn(assets)) {
             asset = *it;
             it = splits.erase(it);
             continue;
           }
-          if ((*it)->GetAccount()->IsContainedIn(expense_mining_fees)) {
+          if ((*it)->account_->IsContainedIn(expense_mining_fees)) {
             fee = *it;
             it = splits.erase(it);
             continue;
@@ -73,7 +94,7 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets,
           throw std::runtime_error("No asset split in mining transaction");
         }
 
-        Amount amt = asset->GetAmount();
+        Amount amt = asset->amount_;
         if (amt <= 0) {
           txn->Print(true);
           throw std::runtime_error("Expect positive mining income");
@@ -88,9 +109,250 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets,
         }
         mining[coin->Id()].at(day).amount += amt;
         mining[coin->Id()].at(day).amount_usd +=
-            amt * PriceSource::GetUSDPrice(day, coin);
+            amt * PriceSource::GetHistoricUSDPrice(day, coin);
+
+        // done with this transaction
+        continue;
       }
     }  // mining transaction
+
+    // check if this is fork income
+    {
+      std::shared_ptr<const ProtoSplit> fork_income_split = nullptr;
+      for (auto it = splits.begin(); it != splits.end(); ++it) {
+        if ((*it)->account_->IsContainedIn(income_forks)) {
+          fork_income_split = *it;
+          splits.erase(it);
+          break;
+        }
+      }
+
+      if (fork_income_split != nullptr) {
+        // this is fork income, make sure this is a single-coin transaction
+        if (coin == nullptr) {
+          txn->Print(true);
+          throw std::runtime_error("Got a multi-coin fork income transaction");
+        }
+
+        // we expect to have an asset split and maybe a transaction fee split
+        std::shared_ptr<const ProtoSplit> asset = nullptr;
+        std::shared_ptr<const ProtoSplit> fee = nullptr;
+
+        auto it = splits.begin();
+        while (it != splits.end()) {
+          if ((*it)->account_->IsContainedIn(assets)) {
+            asset = *it;
+            it = splits.erase(it);
+            continue;
+          }
+          if ((*it)->account_->IsContainedIn(expense_transaction_fees)) {
+            fee = *it;
+            it = splits.erase(it);
+            continue;
+          }
+          ++it;
+        }
+
+        if (splits.size() > 0) {
+          txn->Print(true);
+          throw std::runtime_error(
+              "Leftover splits in fork income transaction");
+        }
+
+        if (asset == nullptr) {
+          txn->Print(true);
+          throw std::runtime_error("No asset split in fork income transaction");
+        }
+
+        Amount amt = asset->amount_;
+        if (amt <= 0) {
+          txn->Print(true);
+          throw std::runtime_error("Expect positive fork income");
+        }
+
+        // we ignore the fee since that is not actually spent, we just acquire
+        // the net fork income at a cost of 0 USD
+        events_[coin->Id()].push_back(
+            TaxEvent(txn->Date(), amt, 0, EventType::ForkIncome));
+
+        // done with this transaction
+        continue;
+      }
+    }  // fork income
+
+    // if this is a single coin transaction, record what is spent
+    {
+      if (coin != nullptr) {
+        std::vector<std::shared_ptr<const ProtoSplit>> expense_splits;
+
+        auto it = splits.begin();
+        while (it != splits.end()) {
+          if ((*it)->account_->IsContainedIn(assets) ||
+              (*it)->account_->IsContainedIn(equity)) {
+            it = splits.erase(it);
+            continue;
+          }
+          if ((*it)->account_->IsContainedIn(expenses)) {
+            expense_splits.push_back(*it);
+            it = splits.erase(it);
+            continue;
+          }
+          ++it;
+        }
+
+        if (splits.size() > 0) {
+          txn->Print(true);
+          throw std::runtime_error(
+              "Leftover splits in single-coin transaction");
+        }
+
+        // make spend events for all expenses, but make sure no expenses are
+        // trading fees or mining fees
+        for (auto& e : expense_splits) {
+          if (e->account_->IsContainedIn(expense_mining_fees)) {
+            txn->Print(true);
+            throw std::runtime_error("Unexpected mining fee expense");
+          }
+          if (e->account_->IsContainedIn(expense_trading_fees)) {
+            txn->Print(true);
+            throw std::runtime_error("Unexpected trading fee expense");
+          }
+
+          auto date = txn->Date();
+          auto amt = e->amount_;
+          auto usd = amt * PriceSource::GetHistoricUSDPrice(date, coin);
+          EventType type = e->account_->IsContainedIn(expense_transaction_fees)
+                               ? EventType::SpentTransactionFee
+                               : EventType::SpentGeneral;
+          std::string memo =
+              txn->Description() + " (" + e->account_->FullName() + ")";
+          events_[coin->Id()].push_back(TaxEvent(date, amt, usd, type, memo));
+        }
+
+        // done with this transaction
+        continue;
+      }
+    }  // spending
+
+    // this has to be a trade transaction on an exchange
+    {
+      // All splits must either be under exchanges or trading fees, there is at
+      // most one trading fee split.
+      // There is one coin that is sold and one that is bought, and optionally,
+      // a different coin in which the fee is paid.
+
+      // first find fee
+      std::shared_ptr<const ProtoSplit> fee_split = nullptr;
+      auto it = splits.begin();
+      while (it != splits.end()) {
+        if ((*it)->account_->IsContainedIn(expense_trading_fees)) {
+          fee_split = *it;
+          it = splits.erase(it);
+          break;
+        }
+        ++it;
+      }
+
+      if ((fee_split != nullptr) && (fee_split->amount_ <= 0)) {
+        txn->Print(true);
+        throw std::runtime_error("Expect a positive trading fee");
+      }
+
+      // find fee match split and make sure all splits are in the exchange
+      // account
+      std::shared_ptr<const ProtoSplit> fee_match_split = nullptr;
+      it = splits.begin();
+      while (it != splits.end()) {
+        if (!(*it)->account_->IsContainedIn(exchanges)) {
+          txn->Print(true);
+          throw std::runtime_error(
+              "Expected exchange split in trade transaction");
+        }
+        if (fee_split != nullptr) {
+          if (((*it)->coin_->Id() == fee_split->coin_->Id()) &&
+              ((*it)->amount_ == -fee_split->amount_)) {
+            fee_match_split = *it;
+            it = splits.erase(it);
+            continue;
+          }
+        }
+        ++it;
+      }
+
+      if (splits.size() != 2) {
+        txn->Print(true);
+        throw std::runtime_error("Expected 2 splits for a trade transaction");
+      }
+
+      // find buy and sell splits
+      std::shared_ptr<const ProtoSplit> buy_split = nullptr;
+      std::shared_ptr<const ProtoSplit> sell_split = nullptr;
+      it = splits.begin();
+      while (it != splits.end()) {
+        if ((*it)->amount_ < 0) {
+          sell_split = *it;
+          it = splits.erase(it);
+          continue;
+        }
+        if ((*it)->amount_ > 0) {
+          buy_split = *it;
+          it = splits.erase(it);
+          continue;
+        }
+        ++it;
+      }
+
+      if ((buy_split == nullptr) || (sell_split == nullptr) ||
+          (splits.size() > 0)) {
+        txn->Print(true);
+        throw std::runtime_error("Couldn't get buy and sell splits");
+      }
+
+      auto date = txn->Date();
+      Amount fee_usd = 0;
+      Amount amt_usd = buy_split->amount_ *
+                       PriceSource::GetHistoricUSDPrice(date, buy_split->coin_);
+      if (sell_split->coin_->IsUSD()) amt_usd = -sell_split->amount_;
+
+      if (fee_split != nullptr) {
+        if ((fee_split->coin_->Id() == buy_split->coin_->Id()) ||
+            (fee_split->coin_->Id() == sell_split->coin_->Id())) {
+          // make sure we don't have a fee match, don't need to treat the fee
+          // separately, since it's already accounted for in the buy or sell
+          // split
+          if (fee_match_split != nullptr) {
+            txn->Print(true);
+            throw std::runtime_error("Unexpected fee match split");
+          }
+        } else {
+          // make sure we have a fee match
+          if (fee_match_split == nullptr) {
+            txn->Print(true);
+            throw std::runtime_error("Expected fee match split");
+          }
+          // the fee is not accounted for in the buy or sell split, determine
+          // its USD value and spend the fee coin
+          fee_usd = fee_split->amount_ *
+                    PriceSource::GetHistoricUSDPrice(date, fee_split->coin_);
+          events_[fee_split->coin_->Id()].push_back(TaxEvent(
+              date, fee_split->amount_, fee_usd, EventType::SpentTradingFee));
+        }
+      }
+
+      // if the fee was paid in a 3rd coin (fee_usd > 0), account for the fee in
+      // the basis (i.e. cost) of the coin that was bought
+      events_[buy_split->coin_->Id()].push_back(TaxEvent(
+          date, buy_split->amount_, amt_usd + fee_usd, EventType::TradeBuy));
+      events_[sell_split->coin_->Id()].push_back(
+          TaxEvent(date, -sell_split->amount_, amt_usd, EventType::TradeSell));
+
+      // done with this transaction
+      continue;
+    }  // trade transaction
+
+    // if we end up here, we couldn't handle this transaction
+    txn->Print(true);
+    throw std::runtime_error("Don't know how to handle that transaction");
   }
 
   // add mining events
@@ -108,15 +370,44 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets,
   }
 }
 
-void Taxes::PrintMiningIncome(const File& file) const {
+void Taxes::PrintEvents(const File& file, EventType type) const {
   for (auto& it : events_) {
     auto coin = file.GetCoin(it.first);
     for (auto e : it.second) {
-      if (e.type == EventType::MiningIncome) {
-        printf("%s  %28s %4s = %28s USD\n", e.date.ToStrDayUTC().c_str(),
+      if (e.type == type) {
+        printf("%s  %28s %4s = %28s USD  %s\n", e.date.ToStrDayUTC().c_str(),
             e.amount.ToStr().c_str(), coin->Symbol().c_str(),
-            e.amount_usd.ToStr().c_str());
+            e.amount_usd.ToStr().c_str(), e.memo.c_str());
       }
     }
   }
+}
+
+void Taxes::PrintIncome(const File& file) const {
+  printf("Fork income\n");
+  printf("===========\n");
+  PrintEvents(file, EventType::ForkIncome);
+  printf("\n\n");
+
+  printf("Mining income\n");
+  printf("========================\n");
+  PrintEvents(file, EventType::MiningIncome);
+  printf("\n\n");
+}
+
+void Taxes::PrintSpending(const File& file) const {
+  printf("General spending\n");
+  printf("================\n");
+  PrintEvents(file, EventType::SpentGeneral);
+  printf("\n\n");
+
+  printf("Transaction fee spending\n");
+  printf("========================\n");
+  PrintEvents(file, EventType::SpentTransactionFee);
+  printf("\n\n");
+
+  printf("Trading fee spending\n");
+  printf("====================\n");
+  PrintEvents(file, EventType::SpentTradingFee);
+  printf("\n\n");
 }

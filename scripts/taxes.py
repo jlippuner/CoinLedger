@@ -5,6 +5,9 @@ from CoinLedger import *
 f = File.Open("import.sqlite3")
 
 assets = f.GetAccount("Assets")
+exchanges = f.GetAccount("Assets::Exchanges")
+equity = f.GetAccount("Equity")
+expenses = f.GetAccount("Expenses")
 mining_fees = f.GetAccount("Expenses::Mining Fees")
 trading_fees = f.GetAccount("Expenses::Trading Fees")
 txn_fees = f.GetAccount("Expenses::Transaction Fees")
@@ -13,7 +16,8 @@ income_mining = f.GetAccount("Income::Mining")
 
 until = Datetime.Now()
 
-tax = Taxes(f, until, assets, mining_fees, trading_fees,
-            txn_fees, income_forks, income_mining)
+tax = Taxes(f, until, assets, exchanges, equity, expenses, mining_fees,
+            trading_fees, txn_fees, income_forks, income_mining)
 
-tax.PrintMiningIncome(f)
+# tax.PrintIncome(f)
+# tax.PrintSpending(f)

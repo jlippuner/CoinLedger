@@ -71,7 +71,7 @@ std::unordered_map<std::string, Amount> PriceSource::GetUSDPrices() {
     throw std::runtime_error("Could not parse result from " + coin_list_url);
 
   std::unordered_map<std::string, Amount> prices;
-  prices[File::USD_id()] = 1;
+  prices[Coin::USD_id()] = 1;
 
   for (auto& c : root) {
     std::string price = "0";
@@ -83,8 +83,12 @@ std::unordered_map<std::string, Amount> PriceSource::GetUSDPrices() {
   return prices;
 }
 
-Amount PriceSource::GetUSDPrice(
+Amount PriceSource::GetHistoricUSDPrice(
     Datetime time, std::shared_ptr<const Coin> coin) {
+  if (coin->IsUSD()) return 1;
+
   // TODO
+  printf(
+      "Need %s price at %s\n", coin->Symbol().c_str(), time.ToStrUTC().c_str());
   return 0;
 }

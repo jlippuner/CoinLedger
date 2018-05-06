@@ -75,7 +75,7 @@ void Kraken::Import(const std::string& import_file, File* file,
       else if (coin_str == "XZEC")
         cid = "zcash";
       else if (coin_str == "ZUSD")
-        cid = File::USD_id();
+        cid = Coin::USD_id();
       else
         throw std::invalid_argument("Unknown Kraken coin '" + coin_str + "'");
 
@@ -89,7 +89,7 @@ void Kraken::Import(const std::string& import_file, File* file,
     if (fee != 0) {
       // if there is a fee, the transaction must either be a deposit/withdrawal,
       // or it must be the USD part of the trade
-      if ((type == "trade") && (coin->Id() != File::USD_id()))
+      if ((type == "trade") && (!coin->IsUSD()))
         throw std::invalid_argument("Kraken trade with unknown fee coin");
     }
 
@@ -134,8 +134,7 @@ void Kraken::Import(const std::string& import_file, File* file,
       }
     }
 
-    if ((coin->Id() == File::USD_id()) &&
-        ((type == "deposit") || (type == "withdrawal"))) {
+    if (coin->IsUSD() && ((type == "deposit") || (type == "withdrawal"))) {
       // if this is a USD deposit or withdrawal, we can add the matching split
       // in the USD investment account
       splits.push_back(

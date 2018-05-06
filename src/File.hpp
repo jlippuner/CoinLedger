@@ -30,8 +30,6 @@
 
 class File {
  public:
-  static std::string USD_id() { return "us-dollar"; }
-
   static File InitNewFile();
 
   static File Open(const std::string& path);

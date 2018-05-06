@@ -60,7 +60,7 @@ File File::InitNewFile() {
   Account::Create(&file, "Equity", true, nullptr, false);
 
   // add all known coins
-  Coin::Create(&file, USD_id(), "US Dollar", "USD");
+  Coin::Create(&file, Coin::USD_id(), "US Dollar", "USD");
   PriceSource::AddAllCoins(&file);
 
   return file;
