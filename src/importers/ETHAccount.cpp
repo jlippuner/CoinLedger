@@ -10,7 +10,7 @@
 
 #include <json/reader.h>
 
-#include "PriceSource.hpp"
+#include "prices/PriceSource.hpp"
 
 void ETHAccount::Import(const std::string& eth_account, File* file,
     std::shared_ptr<Account> account, std::shared_ptr<Account> fee_account,

@@ -1,5 +1,5 @@
-#ifndef SRC_PRICESOURCE_HPP_
-#define SRC_PRICESOURCE_HPP_
+#ifndef SRC_PRICES_PRICESOURCE_HPP_
+#define SRC_PRICES_PRICESOURCE_HPP_
 
 #include <string>
 #include <unordered_map>
@@ -36,7 +36,8 @@ class PriceSource {
 
   static std::unordered_map<std::string, Amount> GetUSDPrices();
 
-  static Amount GetHistoricUSDPrice(Datetime time, std::shared_ptr<const Coin> coin);
+  static Amount GetHistoricUSDPrice(
+      Datetime time, std::shared_ptr<const Coin> coin);
 
  private:
   PriceSource() { curlpp::initialize(); }
@@ -44,4 +45,4 @@ class PriceSource {
   std::string DoGetURL(std::string url) const;
 };
 
-#endif  // SRC_PRICESOURCE_HPP_
+#endif  // SRC_PRICES_PRICESOURCE_HPP_

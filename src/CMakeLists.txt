@@ -1,4 +1,5 @@
 add_subdirectory(importers)
+add_subdirectory(prices)
 add_subdirectory(taxes)
 
 set(srcs
@@ -8,7 +9,6 @@ set(srcs
   Coin.cpp
   Datetime.cpp
   File.cpp
-  PriceSource.cpp
   Split.cpp
   Transaction.cpp
 )
@@ -22,7 +22,6 @@ set(SWIG_deps
   Coin.hpp
   Datetime.hpp
   File.hpp
-  PriceSource.hpp
   Split.hpp
   Transaction.hpp
   UUID.hpp

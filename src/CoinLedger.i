@@ -20,7 +20,6 @@
 #include "Balance.hpp"
 #include "Coin.hpp"
 #include "Datetime.hpp"
-#include "PriceSource.hpp"
 #include "Split.hpp"
 #include "Transaction.hpp"
 #include "UUID.hpp"
@@ -37,6 +36,10 @@
 #include "importers/MiningPoolHub.hpp"
 #include "importers/NiceHash.hpp"
 #include "importers/XRPAccount.hpp"
+
+#include "prices/Candles.hpp"
+#include "prices/H5Helper.hpp"
+#include "prices/PriceSource.hpp"
 
 #include "taxes/Inventory.hpp"
 #include "taxes/Taxes.hpp"
@@ -56,7 +59,6 @@
 %include "Coin.hpp"
 %ignore operator<;
 %include "Datetime.hpp"
-%include "PriceSource.hpp"
 %include "Split.hpp"
 %include "Transaction.hpp"
 %include "UUID.hpp"
@@ -74,6 +76,10 @@
 %include "importers/MiningPoolHub.hpp"
 %include "importers/NiceHash.hpp"
 %include "importers/XRPAccount.hpp"
+
+%include "prices/Candles.hpp"
+%include "prices/H5Helper.hpp"
+%include "prices/PriceSource.hpp"
 
 %include "taxes/Inventory.hpp"
 %include "taxes/Taxes.hpp"

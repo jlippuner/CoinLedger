@@ -9,7 +9,7 @@
 #include "ElectrumWallet.hpp"
 
 #include "CSV.hpp"
-#include "PriceSource.hpp"
+#include "prices/PriceSource.hpp"
 
 void ElectrumWallet::Import(const std::string& import_file, File* file,
     std::shared_ptr<Account> account, std::shared_ptr<Account> fee_account,

@@ -14,7 +14,7 @@
 #include <boost/filesystem.hpp>
 
 #include "Datetime.hpp"
-#include "PriceSource.hpp"
+#include "prices/PriceSource.hpp"
 
 // convenience macros for sqlite3 calls
 #define SQL3(db, COMMAND)                                         \

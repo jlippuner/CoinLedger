@@ -10,7 +10,7 @@
 
 #include <json/reader.h>
 
-#include "PriceSource.hpp"
+#include "prices/PriceSource.hpp"
 
 void XRPAccount::Import(const std::string& xrp_account, File* file,
     std::shared_ptr<Account> account, std::shared_ptr<Account> fee_account,
