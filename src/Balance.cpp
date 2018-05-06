@@ -30,7 +30,7 @@ void Balance::Print(std::string indent, bool flip_sign,
     if (flip_sign) amt = -amt;
 
     printf(
-        "%s%28s %4s", indent.c_str(), amt.ToStr().c_str(), c->Symbol().c_str());
+        "%s%28s %5s", indent.c_str(), amt.ToStr().c_str(), c->Symbol().c_str());
 
     if (prices != nullptr) {
       Amount usd = amt * prices->at(c->Id());

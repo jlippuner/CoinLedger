@@ -1,31 +1,7 @@
 #include "Inventory.hpp"
 
-/*
-Inventory::Inventory(const std::vector<Acquisition>& acquisitions, bool LIFO) {
-  // collect all mining acquisitions from the same day into one acquisition
-  std::map<Datetime, Acquisition> mining;
-
-  std::vector<Acquisition> all_acquisitions;
-
-  for (auto& a : acquisitions) {
-    if (a.source == SourceType::Mining) {
-      auto day = a.date.Day();
-      if (mining.count(day) == 0) {
-        mining.insert({{day, Acquisition(day, 0, 0, SourceType::Mining)}});
-      }
-      mining.at(day).amount += a.amount;
-      mining.at(day).cost_in_usd += a.cost_in_usd;
-    } else {
-      // copy non-mining acquisitions
-      all_acquisitions.push_back(a);
-    }
-  }
-
-}
-*/
-
 void Inventory::Acquire(InventoryItem item) {
-  if (item.date < basis_.back().date)
+  if ((basis_.size() > 0) && (item.date < basis_.back().date))
     throw std::runtime_error("Going backwards in time in Inventory::Acquire");
 
   basis_.push_back(item);
@@ -36,6 +12,9 @@ std::vector<InventoryItem> Inventory::Dispose(Amount amount) {
   Amount remaining = amount;
 
   while (remaining > 0) {
+    if (basis_.size() == 0)
+      throw std::runtime_error("Amount remaining but no inventory");
+
     auto& match = LIFO_ ? basis_.back() : basis_.front();
 
     if (remaining >= match.amount) {

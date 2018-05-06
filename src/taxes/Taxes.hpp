@@ -46,7 +46,11 @@ struct GainLoss {
         acquired(acquired),
         disposed(disposed),
         proceeds(proceeds),
-        cost(cost) {}
+        cost(cost) {
+    if (disposed < acquired)
+      throw std::invalid_argument(
+          "Cannot dispose of asset before acquiring it");
+  }
 
   std::shared_ptr<const Coin> coin;
   Amount amount;
@@ -67,8 +71,12 @@ class Taxes {
 
   void PrintIncome(const File& file) const;
   void PrintSpending(const File& file) const;
+  void PrintCapitalGainsLosses(
+      const File& file, size_t long_term_in_days, bool LIFO) const;
 
  private:
+  void PrintGainLoss(std::vector<GainLoss>* gains) const;
+
   std::map<std::string, std::vector<TaxEvent>> events_;
 };
 

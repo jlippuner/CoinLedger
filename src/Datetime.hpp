@@ -49,6 +49,15 @@ class Datetime {
   static size_t size() { return sizeof(time_t); }
   const void* Raw() const { return (void*)&time_; }
 
+  size_t AbsDiffInSeconds(const Datetime& other) const {
+    if (time_ < other.time_)
+      return other.time_ - time_;
+    else if (time_ > other.time_)
+      return time_ - other.time_;
+    else
+      return 0;
+  }
+
   std::string ToStrLocalFile() const;
   // std::string ToStrLocal() const;
   std::string ToStrUTC() const;

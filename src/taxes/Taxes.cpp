@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <list>
 
+#include "Inventory.hpp"
 #include "PriceSource.hpp"
 
 Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt exchanges,
@@ -410,4 +411,121 @@ void Taxes::PrintSpending(const File& file) const {
   printf("====================\n");
   PrintEvents(file, EventType::SpentTradingFee);
   printf("\n\n");
+}
+
+void Taxes::PrintCapitalGainsLosses(
+    const File& file, size_t long_term_in_days, bool LIFO) const {
+  std::vector<GainLoss> short_term;
+  std::vector<GainLoss> long_term;
+
+  std::map<std::string, Inventory> inventories;
+
+  for (auto& it : events_) {
+    auto coin_id = it.first;
+    if (coin_id == Coin::USD_id()) {
+      for (auto& e : it.second) {
+        if (e.amount != e.amount_usd)
+          throw std::runtime_error("Got USD event with mismatching amounts");
+      }
+      continue;
+    }
+
+    inventories.insert({{coin_id, Inventory(LIFO)}});
+
+    for (auto& e : it.second) {
+      if ((e.type == EventType::MiningIncome) ||
+          (e.type == EventType::ForkIncome) ||
+          (e.type == EventType::TradeBuy)) {
+        InventoryItem new_inv(e.date, e.amount, e.amount_usd);
+        inventories.at(coin_id).Acquire(new_inv);
+      } else if ((e.type == EventType::SpentGeneral) ||
+                 (e.type == EventType::SpentTransactionFee) ||
+                 (e.type == EventType::SpentTradingFee) ||
+                 (e.type == EventType::TradeSell)) {
+        auto disp = inventories.at(coin_id).Dispose(e.amount);
+        std::vector<GainLoss> gains;
+
+        if (disp.size() == 0) {
+          throw std::runtime_error("Got 0 disposals");
+        } else if (disp.size() == 1) {
+          // only one inventory item was consumed
+          auto d = disp[0];
+          if (d.amount != e.amount) throw std::runtime_error("Amount mismatch");
+          gains.push_back(GainLoss(file.GetCoin(coin_id), e.amount, d.date,
+              e.date, e.amount_usd, d.cost_in_usd));
+        } else {
+          for (auto& d : disp) {
+            Amount this_proceed = (e.amount_usd * d.amount) / e.amount;
+            gains.push_back(GainLoss(file.GetCoin(coin_id), d.amount, d.date,
+                e.date, this_proceed, d.cost_in_usd));
+          }
+        }
+
+        for (auto& g : gains) {
+          size_t holding_period_in_seconds =
+              g.acquired.AbsDiffInSeconds(g.disposed);
+          if (holding_period_in_seconds > (long_term_in_days * 24 * 3600))
+            long_term.push_back(g);
+          else
+            short_term.push_back(g);
+        }
+      }
+    }
+  }
+
+  printf("Short-Term Disposition of Assets\n");
+  printf("================================\n");
+  PrintGainLoss(&short_term);
+  printf("\n\n");
+
+  printf("Long-Term Disposition of Assets\n");
+  printf("===============================\n");
+  PrintGainLoss(&long_term);
+  printf("\n\n");
+
+  printf("Unrealized Gains and Losses\n");
+  printf("===========================\n");
+  printf("%34s  %28s  %28s  %28s\n", "Unsold Asset", "Net Cost (USD)",
+      "Current Value (USD)", "Unrealized Profit/Loss (USD)");
+
+  auto prices = PriceSource::GetUSDPrices();
+  for (auto& it : inventories) {
+    auto coin = file.GetCoin(it.first);
+
+    auto unsold = it.second.Unsold();
+    auto amount = unsold.first;
+    if (amount == 0) continue;
+    auto cost = unsold.second;
+    auto value = amount * prices.at(coin->Id());
+    auto profit = value - cost;
+    printf("%28s %5s  %28s  %28s  %28s\n", amount.ToStr().c_str(),
+        coin->Symbol().c_str(), cost.ToStr().c_str(), value.ToStr().c_str(),
+        profit.ToStr().c_str());
+  }
+  printf("\n\n");
+}
+
+void Taxes::PrintGainLoss(std::vector<GainLoss>* gains) const {
+  std::sort(
+      gains->begin(), gains->end(), [](const GainLoss& a, const GainLoss& b) {
+        if (a.coin->Id() == b.coin->Id()) {
+          if (a.disposed == b.disposed) {
+            return a.acquired < b.acquired;
+          } else {
+            return a.disposed < b.disposed;
+          }
+        } else {
+          return a.coin->Id() < b.coin->Id();
+        }
+      });
+
+  printf("%34s  %10s  %10s  %28s  %28s  %28s\n", "Description", "Acquired",
+      "Disposed", "Net Proceeds (USD)", "Net Cost (USD)", "Profit/Loss (USD)");
+  for (auto& g : *gains) {
+    Amount profit = g.proceeds - g.cost;
+    printf("%28s %5s  %s  %s  %28s  %28s  %28s\n", g.amount.ToStr().c_str(),
+        g.coin->Symbol().c_str(), g.acquired.ToStrDayUTC().c_str(),
+        g.disposed.ToStrDayUTC().c_str(), g.proceeds.ToStr().c_str(),
+        g.cost.ToStr().c_str(), profit.ToStr().c_str());
+  }
 }

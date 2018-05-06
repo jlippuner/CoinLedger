@@ -19,5 +19,6 @@ until = Datetime.Now()
 tax = Taxes(f, until, assets, exchanges, equity, expenses, mining_fees,
             trading_fees, txn_fees, income_forks, income_mining)
 
-# tax.PrintIncome(f)
-# tax.PrintSpending(f)
+tax.PrintIncome(f)
+tax.PrintSpending(f)
+tax.PrintCapitalGainsLosses(f, 365, False)

@@ -88,7 +88,8 @@ Amount PriceSource::GetHistoricUSDPrice(
   if (coin->IsUSD()) return 1;
 
   // TODO
-  printf(
-      "Need %s price at %s\n", coin->Symbol().c_str(), time.ToStrUTC().c_str());
+  // printf(
+  //     "Need %s price at %s\n", coin->Symbol().c_str(),
+  //     time.ToStrUTC().c_str());
   return 0;
 }
