@@ -65,6 +65,7 @@ class Datetime {
 
   // get the end of the day
   Datetime EndOfDay() const;
+  size_t Day() const { return time_ / (24 * 3600); }
 
   bool operator==(const Datetime& other) const { return time_ == other.time_; }
   bool operator!=(const Datetime& other) const { return time_ != other.time_; }

@@ -21,6 +21,8 @@
 #include "Transaction.hpp"
 #include "UUID.hpp"
 
+#include "prices/DailyData.hpp"
+
 // This class represents a CoinLedger file that stores all the information
 // contained in the program. The actual file used to write to and read from is
 // a SQLite database file.
@@ -57,6 +59,9 @@ class File {
   UUIDMap<Balance> MakeAccountBalances() const;
 
   void PrintAccountBalances() const;
+
+  Amount GetHistoricUSDPrice(
+      Datetime time, std::shared_ptr<const Coin> coin) const;
 
   std::shared_ptr<Coin> AddCoin(const Coin& coin) {
     auto res =
@@ -136,6 +141,9 @@ class File {
   std::unordered_map<std::string, std::shared_ptr<Coin>> coins_;
   // coin symbols are mostly unique, but not always
   std::unordered_multimap<std::string, std::shared_ptr<Coin>> coin_by_symbol_;
+
+  // historical daily price data
+  mutable std::unordered_map<std::string, DailyData> daily_data_;
 
   // all accounts
   UUIDMap<std::shared_ptr<Account>> accounts_;

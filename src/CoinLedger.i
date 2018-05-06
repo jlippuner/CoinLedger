@@ -37,8 +37,7 @@
 #include "importers/NiceHash.hpp"
 #include "importers/XRPAccount.hpp"
 
-#include "prices/Candles.hpp"
-#include "prices/H5Helper.hpp"
+#include "prices/DailyData.hpp"
 #include "prices/PriceSource.hpp"
 
 #include "taxes/Inventory.hpp"
@@ -77,8 +76,7 @@
 %include "importers/NiceHash.hpp"
 %include "importers/XRPAccount.hpp"
 
-%include "prices/Candles.hpp"
-%include "prices/H5Helper.hpp"
+%include "prices/DailyData.hpp"
 %include "prices/PriceSource.hpp"
 
 %include "taxes/Inventory.hpp"

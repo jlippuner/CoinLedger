@@ -65,10 +65,10 @@ find_package(PythonLibs 2.6 REQUIRED)
 include(${SWIG_USE_FILE})
 include_directories(${PYTHON_INCLUDE_DIRS})
 
-# we need HDF5
-find_package(HDF5 REQUIRED CXX)
-include_directories(${HDF5_INCLUDE_DIRS})
-set(COINLEDGER_EXTERNAL_LIBS "${COINLEDGER_EXTERNAL_LIBS};${HDF5_LIBRARIES}")
+# we need LibXML++
+find_package(LibXML++ REQUIRED)
+include_directories(${LibXML++_INCLUDE_DIRS})
+set(COINLEDGER_EXTERNAL_LIBS "${COINLEDGER_EXTERNAL_LIBS};${LibXML++_LIBRARIES}")
 
 macro(add_CoinLedger_library library sources)
   add_library(${library} OBJECT ${sources})

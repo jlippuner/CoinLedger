@@ -36,9 +36,6 @@ class PriceSource {
 
   static std::unordered_map<std::string, Amount> GetUSDPrices();
 
-  static Amount GetHistoricUSDPrice(
-      Datetime time, std::shared_ptr<const Coin> coin);
-
  private:
   PriceSource() { curlpp::initialize(); }
 

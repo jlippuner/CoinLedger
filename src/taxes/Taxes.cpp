@@ -4,7 +4,6 @@
 #include <list>
 
 #include "Inventory.hpp"
-#include "prices/PriceSource.hpp"
 
 Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt exchanges,
     Accnt equity, Accnt expenses, Accnt expense_mining_fees,
@@ -110,7 +109,7 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt exchanges,
         }
         mining[coin->Id()].at(day).amount += amt;
         mining[coin->Id()].at(day).amount_usd +=
-            amt * PriceSource::GetHistoricUSDPrice(day, coin);
+            amt * file.GetHistoricUSDPrice(day, coin);
 
         // done with this transaction
         continue;
@@ -221,7 +220,7 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt exchanges,
 
           auto date = txn->Date();
           auto amt = e->amount_;
-          auto usd = amt * PriceSource::GetHistoricUSDPrice(date, coin);
+          auto usd = amt * file.GetHistoricUSDPrice(date, coin);
           EventType type = e->account_->IsContainedIn(expense_transaction_fees)
                                ? EventType::SpentTransactionFee
                                : EventType::SpentGeneral;
@@ -311,8 +310,8 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt exchanges,
 
       auto date = txn->Date();
       Amount fee_usd = 0;
-      Amount amt_usd = buy_split->amount_ *
-                       PriceSource::GetHistoricUSDPrice(date, buy_split->coin_);
+      Amount amt_usd =
+          buy_split->amount_ * file.GetHistoricUSDPrice(date, buy_split->coin_);
       if (sell_split->coin_->IsUSD()) amt_usd = -sell_split->amount_;
 
       if (fee_split != nullptr) {
@@ -334,7 +333,7 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt exchanges,
           // the fee is not accounted for in the buy or sell split, determine
           // its USD value and spend the fee coin
           fee_usd = fee_split->amount_ *
-                    PriceSource::GetHistoricUSDPrice(date, fee_split->coin_);
+                    file.GetHistoricUSDPrice(date, fee_split->coin_);
           events_[fee_split->coin_->Id()].push_back(TaxEvent(
               date, fee_split->amount_, fee_usd, EventType::SpentTradingFee));
         }

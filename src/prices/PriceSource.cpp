@@ -82,14 +82,3 @@ std::unordered_map<std::string, Amount> PriceSource::GetUSDPrices() {
 
   return prices;
 }
-
-Amount PriceSource::GetHistoricUSDPrice(
-    Datetime time, std::shared_ptr<const Coin> coin) {
-  if (coin->IsUSD()) return 1;
-
-  // TODO
-  // printf(
-  //     "Need %s price at %s\n", coin->Symbol().c_str(),
-  //     time.ToStrUTC().c_str());
-  return 0;
-}

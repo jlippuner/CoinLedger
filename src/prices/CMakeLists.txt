@@ -1,14 +1,12 @@
 set(srcs
-  Candles.cpp
-  H5Helper.cpp
+  DailyData.cpp
   PriceSource.cpp
 )
 
 add_CoinLedger_library(prices "${srcs}")
 
 set(SWIG_deps
-  Candles.hpp
-  H5Helper.hpp
+  DailyData.hpp
   PriceSource.hpp
 )
 

@@ -210,6 +210,50 @@ File File::Open(const std::string& path) {
     SQL3(db, sqlite3_finalize(stmt));
   }
 
+  // read daily data
+  {
+    std::unordered_map<std::string, int64_t> start_days;
+
+    // read meta data
+    {
+      sqlite3_stmt* stmt = nullptr;
+      SQL3(db, sqlite3_prepare_v2(
+                   db, "SELECT * FROM daily_data;", -1, &stmt, nullptr));
+
+      int res = sqlite3_step(stmt);
+      while (res == SQLITE_ROW) {
+        std::string coin_id = sqlite3_column_str(stmt, 0);
+        int64_t start_day = sqlite3_column_int64(stmt, 1);
+        start_days.insert({{coin_id, start_day}});
+        res = sqlite3_step(stmt);
+      }
+      if (res != SQLITE_DONE) SQL3(db, res);
+      SQL3(db, sqlite3_finalize(stmt));
+    }
+
+    // read price data
+    for (auto& itm : start_days) {
+      auto coin_id = itm.first;
+      std::vector<Amount> prices;
+
+      sqlite3_stmt* stmt = nullptr;
+      std::string sql = "SELECT * FROM " + coin_id + "_daily_data;";
+      SQL3(db, sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr));
+
+      int res = sqlite3_step(stmt);
+      while (res == SQLITE_ROW) {
+        Amount price = sqlite3_column_amount(stmt, 0);
+        prices.push_back(price);
+        res = sqlite3_step(stmt);
+      }
+      if (res != SQLITE_DONE) SQL3(db, res);
+      SQL3(db, sqlite3_finalize(stmt));
+
+      auto coin = file.coins_.at(coin_id);
+      file.daily_data_.insert({{coin_id, DailyData(coin, itm.second, prices)}});
+    }
+  }
+
   SQL3(db, sqlite3_close_v2(db));
   return file;
 }
@@ -437,6 +481,82 @@ void File::Save(const std::string& path) const {
     SQL3(db, sqlite3_finalize(stmt));
   }
 
+  // write daily data
+  {
+    SQL3_EXEC(db, R"(
+        CREATE TABLE daily_data (
+          coin_id     TEXT PRIMARY KEY,
+          start_day   INT8
+        ) WITHOUT ROWID;
+      )",
+        nullptr, nullptr);
+
+    for (auto& itm : daily_data_) {
+      auto coin_id = itm.first;
+      std::string sql =
+          "CREATE TABLE " + coin_id + "_daily_data (price  BLOB);";
+      SQL3_EXEC(db, sql.c_str(), nullptr, nullptr);
+    }
+
+    // write meta data
+    {
+      sqlite3_stmt* stmt = nullptr;
+      const char* sql = R"(
+        INSERT INTO daily_data
+        VALUES (?, ?);
+      )";
+
+      SQL3(db, sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr));
+
+      // do inserts inside a transaction, otherwise they're VERY slow
+      SQL3_EXEC(db, "BEGIN TRANSACTION;", nullptr, nullptr);
+
+      for (auto& itm : daily_data_) {
+        // first reset statement
+        SQL3(db, sqlite3_reset(stmt));
+
+        // bind values to statement
+        SQL3(db, sqlite3_bind_str(stmt, 1, itm.first));
+        SQL3(db, sqlite3_bind_int64(stmt, 2, itm.second.StartDay()));
+
+        // execute the statement
+        int res = sqlite3_step(stmt);
+        if (res != SQLITE_DONE) SQL3(db, res);
+      }
+
+      SQL3_EXEC(db, "END TRANSACTION;", nullptr, nullptr);
+
+      SQL3(db, sqlite3_finalize(stmt));
+    }
+
+    // write price data
+    for (auto& itm : daily_data_) {
+      sqlite3_stmt* stmt = nullptr;
+      std::string sql = "INSERT INTO " + itm.first + "_daily_data VALUES (?);";
+
+      SQL3(db, sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr));
+
+      // do inserts inside a transaction, otherwise they're VERY slow
+      SQL3_EXEC(db, "BEGIN TRANSACTION;", nullptr, nullptr);
+
+      for (auto p : itm.second.Prices()) {
+        // first reset statement
+        SQL3(db, sqlite3_reset(stmt));
+
+        // bind values to statement
+        SQL3(db, sqlite3_bind_amount(stmt, 1, p));
+
+        // execute the statement
+        int res = sqlite3_step(stmt);
+        if (res != SQLITE_DONE) SQL3(db, res);
+      }
+
+      SQL3_EXEC(db, "END TRANSACTION;", nullptr, nullptr);
+
+      SQL3(db, sqlite3_finalize(stmt));
+    }
+  }
+
   SQL3(db, sqlite3_close_v2(db));
 }
 #undef SQL3_FAIL
@@ -556,6 +676,14 @@ void File::PrintAccountBalances() const {
   GetAccount("Expenses")->PrintTreeBalance(balances, "", false, &prices);
   GetAccount("Income")->PrintTreeBalance(balances, "", true, &prices);
   GetAccount("Liabilities")->PrintTreeBalance(balances, "", true, &prices);
+}
+
+Amount File::GetHistoricUSDPrice(
+    Datetime time, std::shared_ptr<const Coin> coin) const {
+  if (coin->IsUSD()) return 1;
+  if (daily_data_.count(coin->Id()) == 0)
+    daily_data_.insert({{coin->Id(), DailyData(coin)}});
+  return daily_data_.at(coin->Id())(time);
 }
 
 void File::PrintTransactions(std::vector<std::shared_ptr<Transaction>> txns,
