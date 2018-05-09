@@ -57,6 +57,46 @@ Datetime Datetime::EndOfDay() const {
       utc->tm_year + 1900, utc->tm_mon + 1, utc->tm_mday, 23, 59, 59, true);
 }
 
+int64_t Datetime::DailyDataDayFromStr(std::string str) {
+  char month_char[4];
+  int day, year;
+  if (sscanf(str.c_str(), "%3s %2d, %4d", month_char, &day, &year) != 3)
+    throw std::invalid_argument(
+        "Cannot parse '" + str + "' as a date and time");
+
+  std::string month_str(month_char);
+  int month = 0;
+  if (month_str == "Jan")
+    month = 1;
+  else if (month_str == "Feb")
+    month = 2;
+  else if (month_str == "Mar")
+    month = 3;
+  else if (month_str == "Apr")
+    month = 4;
+  else if (month_str == "May")
+    month = 5;
+  else if (month_str == "Jun")
+    month = 6;
+  else if (month_str == "Jul")
+    month = 7;
+  else if (month_str == "Aug")
+    month = 8;
+  else if (month_str == "Sep")
+    month = 9;
+  else if (month_str == "Oct")
+    month = 10;
+  else if (month_str == "Nov")
+    month = 11;
+  else if (month_str == "Dec")
+    month = 12;
+  else
+    throw std::invalid_argument("Invalid month string '" + month_str + "'");
+
+  auto date = MakeDatetime(year, month, day, 12, 0, 0, true);
+  return date.DailyDataDay();
+}
+
 Datetime Datetime::Parse(const std::string& str, const char* format, bool UTC) {
   int year, month, day, hour, minute;
   float second;
@@ -96,7 +136,7 @@ Datetime Datetime::MakeDatetime(int year, int month, int day, int hour,
   }
 }
 
-std::string Datetime::ToStr(struct tm* time_tm, const char* format) const {
+std::string Datetime::ToStr(struct tm* time_tm, const char* format) {
   char buf[1024];
   strftime(buf, 1024, format, time_tm);
   return std::string(buf);

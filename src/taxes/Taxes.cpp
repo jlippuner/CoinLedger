@@ -5,6 +5,8 @@
 
 #include "Inventory.hpp"
 
+#include "prices/PriceSource.hpp"
+
 Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt exchanges,
     Accnt equity, Accnt expenses, Accnt expense_mining_fees,
     Accnt expense_trading_fees, Accnt expense_transaction_fees,

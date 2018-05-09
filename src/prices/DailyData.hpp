@@ -8,11 +8,9 @@
 #include "Coin.hpp"
 #include "Datetime.hpp"
 
-#include "PriceSource.hpp"
-
 class DailyData {
  public:
-  DailyData(std::shared_ptr<const Coin> coin) : coin_(coin) {}
+  DailyData(std::shared_ptr<const Coin> coin) : coin_(coin), start_day_(0) {}
   DailyData(std::shared_ptr<const Coin> coin, int64_t start_day,
       const std::vector<Amount>& prices)
       : coin_(coin), start_day_(start_day), prices_(prices) {}
@@ -24,6 +22,9 @@ class DailyData {
   Amount operator()(const Datetime& date);
 
  private:
+  std::pair<std::vector<int64_t>, std::vector<Amount>> GetData(
+      int64_t from, int64_t to) const;
+
   // coin whose prices are stored
   std::shared_ptr<const Coin> coin_;
 

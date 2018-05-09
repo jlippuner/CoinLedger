@@ -65,7 +65,17 @@ class Datetime {
 
   // get the end of the day
   Datetime EndOfDay() const;
-  size_t Day() const { return time_ / (24 * 3600); }
+
+  // for DailyData
+  int64_t DailyDataDay() const { return time_ / (24 * 3600); }
+  static std::string ToStrDailyData(int64_t day) {
+    // add 12 hours to make sure we don't get screwed by potential leap seconds
+    time_t t = day * 24 * 3600 + 12 * 3600;
+    struct tm* utc = gmtime(&t);
+    return ToStr(utc, "%Y%m%d");
+  }
+  static int64_t DailyDataDayFromStr(std::string str);
+
 
   bool operator==(const Datetime& other) const { return time_ == other.time_; }
   bool operator!=(const Datetime& other) const { return time_ != other.time_; }
@@ -81,7 +91,7 @@ class Datetime {
   static Datetime MakeDatetime(int year, int month, int day, int hour,
       int minute, float second, bool UTC);
 
-  std::string ToStr(struct tm* time_tm, const char* format) const;
+  static std::string ToStr(struct tm* time_tm, const char* format);
 
   time_t time_;
 };

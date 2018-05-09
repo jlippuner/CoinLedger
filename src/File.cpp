@@ -237,7 +237,7 @@ File File::Open(const std::string& path) {
       std::vector<Amount> prices;
 
       sqlite3_stmt* stmt = nullptr;
-      std::string sql = "SELECT * FROM " + coin_id + "_daily_data;";
+      std::string sql = "SELECT * FROM [" + coin_id + "_daily_data];";
       SQL3(db, sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr));
 
       int res = sqlite3_step(stmt);
@@ -494,7 +494,7 @@ void File::Save(const std::string& path) const {
     for (auto& itm : daily_data_) {
       auto coin_id = itm.first;
       std::string sql =
-          "CREATE TABLE " + coin_id + "_daily_data (price  BLOB);";
+          "CREATE TABLE [" + coin_id + "_daily_data] (price BLOB);";
       SQL3_EXEC(db, sql.c_str(), nullptr, nullptr);
     }
 
@@ -532,7 +532,7 @@ void File::Save(const std::string& path) const {
     // write price data
     for (auto& itm : daily_data_) {
       sqlite3_stmt* stmt = nullptr;
-      std::string sql = "INSERT INTO " + itm.first + "_daily_data VALUES (?);";
+      std::string sql = "INSERT INTO [" + itm.first + "_daily_data] VALUES (?);";
 
       SQL3(db, sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr));
 
