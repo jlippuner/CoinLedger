@@ -312,9 +312,17 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt exchanges,
 
       auto date = txn->Date();
       Amount fee_usd = 0;
-      Amount amt_usd =
-          buy_split->amount_ * file.GetHistoricUSDPrice(date, buy_split->coin_);
-      if (sell_split->coin_->IsUSD()) amt_usd = -sell_split->amount_;
+
+      // get the USD amount from the sell split by default
+      Amount amt_usd = -sell_split->amount_ *
+                       file.GetHistoricUSDPrice(date, sell_split->coin_);
+
+      // unless the buy coin is USD or USDT
+      if (buy_split->coin_->IsUSD())
+        amt_usd = buy_split->amount_;
+      else if (buy_split->coin_->Id() == "tether")
+        amt_usd = buy_split->amount_ *
+                  file.GetHistoricUSDPrice(date, buy_split->coin_);
 
       if (fee_split != nullptr) {
         if ((fee_split->coin_->Id() == buy_split->coin_->Id()) ||
@@ -415,7 +423,7 @@ void Taxes::PrintSpending(const File& file) const {
 }
 
 void Taxes::PrintCapitalGainsLosses(
-    const File& file, size_t long_term_in_days, bool LIFO) const {
+    const File& file, size_t long_term_in_days, bool LIFO, bool fuse) const {
   std::vector<GainLoss> short_term;
   std::vector<GainLoss> long_term;
 
@@ -476,12 +484,12 @@ void Taxes::PrintCapitalGainsLosses(
 
   printf("Short-Term Disposition of Assets\n");
   printf("================================\n");
-  PrintGainLoss(&short_term);
+  PrintGainLoss(&short_term, fuse);
   printf("\n\n");
 
   printf("Long-Term Disposition of Assets\n");
   printf("===============================\n");
-  PrintGainLoss(&long_term);
+  PrintGainLoss(&long_term, fuse);
   printf("\n\n");
 
   printf("Unrealized Gains and Losses\n");
@@ -506,7 +514,12 @@ void Taxes::PrintCapitalGainsLosses(
   printf("\n\n");
 }
 
-void Taxes::PrintGainLoss(std::vector<GainLoss>* gains) const {
+void Taxes::PrintGainLoss(std::vector<GainLoss>* gains, bool fuse) const {
+  printf("%34s  %10s  %10s  %28s  %28s  %28s\n", "Description", "Acquired",
+      "Disposed", "Net Proceeds (USD)", "Net Cost (USD)", "Profit/Loss (USD)");
+
+  if (gains->size() == 0) return;
+
   std::sort(
       gains->begin(), gains->end(), [](const GainLoss& a, const GainLoss& b) {
         if (a.coin->Id() == b.coin->Id()) {
@@ -520,12 +533,38 @@ void Taxes::PrintGainLoss(std::vector<GainLoss>* gains) const {
         }
       });
 
-  printf("%34s  %10s  %10s  %28s  %28s  %28s\n", "Description", "Acquired",
-      "Disposed", "Net Proceeds (USD)", "Net Cost (USD)", "Profit/Loss (USD)");
-  for (auto& g : *gains) {
+  std::vector<GainLoss> fused;
+  std::vector<GainLoss>* fused_ptr;
+
+  if (fuse) {
+    fused_ptr = &fused;
+    fused.push_back((*gains)[0]);
+
+    for (size_t i = 1; i < gains->size(); ++i) {
+      auto& g = (*gains)[i];
+      auto& prev = fused[fused.size() - 1];
+
+      // we can fuse this gain with the previous one if they have the same coin
+      // and were disposed on the same day
+      if ((prev.coin->Id() == g.coin->Id()) &&
+          (prev.disposed.EndOfDay() == g.disposed.EndOfDay())) {
+        prev.amount += g.amount;
+        prev.proceeds += g.proceeds;
+        prev.cost += g.cost;
+        prev.various_acquired_dates = true;
+      } else {
+        fused.push_back(g);
+      }
+    }
+  } else {
+    fused_ptr = gains;
+  }
+
+  for (auto& g : *fused_ptr) {
     Amount profit = g.proceeds - g.cost;
-    printf("%28s %5s  %s  %s  %28s  %28s  %28s\n", g.amount.ToStr().c_str(),
-        g.coin->Symbol().c_str(), g.acquired.ToStrDayUTC().c_str(),
+    printf("%28s %5s  %10s  %10s  %28s  %28s  %28s\n", g.amount.ToStr().c_str(),
+        g.coin->Symbol().c_str(),
+        g.various_acquired_dates ? "VARIOUS" : g.acquired.ToStrDayUTC().c_str(),
         g.disposed.ToStrDayUTC().c_str(), g.proceeds.ToStr().c_str(),
         g.cost.ToStr().c_str(), profit.ToStr().c_str());
   }
