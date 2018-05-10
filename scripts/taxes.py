@@ -2,10 +2,10 @@
 
 from CoinLedger import *
 
-#f = File.Open("import.sqlite3")
-f = File.Open("import_with_price_data.sqlite3")
+f = File.Open("import.sqlite3")
 
 assets = f.GetAccount("Assets")
+wallets = f.GetAccount("Assets::Wallets")
 exchanges = f.GetAccount("Assets::Exchanges")
 equity = f.GetAccount("Equity")
 expenses = f.GetAccount("Expenses")
@@ -18,11 +18,9 @@ income_mining = f.GetAccount("Income::Mining")
 until = Datetime.Now()
 until = Datetime.FromUTC("2018-01-01 00:00:00")
 
-tax = Taxes(f, until, assets, exchanges, equity, expenses, mining_fees,
+tax = Taxes(f, until, assets, wallets, exchanges, equity, expenses, mining_fees,
             trading_fees, txn_fees, income_forks, income_mining)
 
 tax.PrintIncome(f)
 tax.PrintSpending(f)
 tax.PrintCapitalGainsLosses(f, 365, False)
-
-#f.Save("import_with_price_data.sqlite3")

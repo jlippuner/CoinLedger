@@ -7,8 +7,8 @@
 
 #include "prices/PriceSource.hpp"
 
-Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt exchanges,
-    Accnt equity, Accnt expenses, Accnt expense_mining_fees,
+Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt wallets,
+    Accnt exchanges, Accnt equity, Accnt expenses, Accnt expense_mining_fees,
     Accnt expense_trading_fees, Accnt expense_transaction_fees,
     Accnt income_forks, Accnt income_mining) {
   // collect all mining income from the same day into one tax event
@@ -236,6 +236,148 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt exchanges,
         continue;
       }
     }  // spending
+
+    // check if this is spending with a coin conversion
+    {
+      // There is one split that reduces a wallet account, one that increases an
+      // expense account (which is not a transaction, mining, or trading fee),
+      // and optionally a transaction fee split
+
+      // first find wallet split
+      std::shared_ptr<const ProtoSplit> wallet_split = nullptr;
+      auto it = splits.begin();
+      while (it != splits.end()) {
+        if ((*it)->account_->IsContainedIn(wallets)) {
+          wallet_split = *it;
+          it = splits.erase(it);
+          break;
+        }
+        ++it;
+      }
+
+      if (wallet_split != nullptr) {
+        if (wallet_split->amount_ >= 0) {
+          txn->Print(true);
+          throw std::runtime_error(
+              "Expect a negative amount in the wallet split");
+        }
+
+        std::shared_ptr<const ProtoSplit> fee_split = nullptr;
+        auto it = splits.begin();
+        while (it != splits.end()) {
+          if ((*it)->account_->IsContainedIn(expense_transaction_fees)) {
+            fee_split = *it;
+            it = splits.erase(it);
+            break;
+          }
+          ++it;
+        }
+        if ((fee_split != nullptr) && (fee_split->amount_ <= 0)) {
+          txn->Print(true);
+          throw std::runtime_error("Expect a positive transaction fee");
+        }
+
+        // find fee match split if there is one
+        std::shared_ptr<const ProtoSplit> fee_match_split = nullptr;
+        if (fee_split != nullptr) {
+          it = splits.begin();
+          while (it != splits.end()) {
+            if (((*it)->coin_->Id() == fee_split->coin_->Id()) &&
+                ((*it)->amount_ == -fee_split->amount_)) {
+              fee_match_split = *it;
+              it = splits.erase(it);
+              continue;
+            }
+            ++it;
+          }
+        }
+
+        // there should be one split left now, which is an expense split, but
+        // not transaction, trading, or mining fee
+        if (splits.size() != 1) {
+          txn->Print(true);
+          throw std::runtime_error(
+              "Expected 1 split left in conversion spending");
+        }
+
+        // check the expense split
+        std::shared_ptr<const ProtoSplit> expense_split = nullptr;
+        it = splits.begin();
+        while (it != splits.end()) {
+          if ((*it)->account_->IsContainedIn(expenses) &&
+              !(*it)->account_->IsContainedIn(expense_transaction_fees) &&
+              !(*it)->account_->IsContainedIn(expense_mining_fees) &&
+              !(*it)->account_->IsContainedIn(expense_trading_fees) &&
+              ((*it)->amount_ > 0)) {
+            expense_split = *it;
+            it = splits.erase(it);
+            break;
+          }
+          ++it;
+        }
+
+        if ((expense_split == nullptr) || (wallet_split == nullptr) ||
+            (splits.size() > 0)) {
+          txn->Print(true);
+          throw std::runtime_error("Couldn't get buy and sell splits");
+        }
+
+        auto date = txn->Date();
+        Amount fee_usd = 0;
+
+        // get the USD amount from the sell split by default
+        Amount amt_usd = -wallet_split->amount_ *
+                         file.GetHistoricUSDPrice(date, wallet_split->coin_);
+
+        // unless the buy coin is USD or USDT
+        if (expense_split->coin_->IsUSD())
+          amt_usd = expense_split->amount_;
+        else if (expense_split->coin_->Id() == "tether")
+          amt_usd = expense_split->amount_ *
+                    file.GetHistoricUSDPrice(date, expense_split->coin_);
+
+        if (fee_split != nullptr) {
+          if ((fee_split->coin_->Id() == expense_split->coin_->Id()) ||
+              (fee_split->coin_->Id() == wallet_split->coin_->Id())) {
+            // make sure we don't have a fee match, don't need to treat the fee
+            // separately, since it's already accounted for in the buy or sell
+            // split
+            if (fee_match_split != nullptr) {
+              txn->Print(true);
+              throw std::runtime_error("Unexpected fee match split");
+            }
+          } else {
+            // make sure we have a fee match
+            if (fee_match_split == nullptr) {
+              txn->Print(true);
+              throw std::runtime_error("Expected fee match split");
+            }
+            // the fee is not accounted for in the buy or sell split, determine
+            // its USD value and spend the fee coin
+            fee_usd = fee_split->amount_ *
+                      file.GetHistoricUSDPrice(date, fee_split->coin_);
+            std::string memo = txn->Description() + " (" +
+                               fee_split->account_->FullName() + ")";
+            events_[fee_split->coin_->Id()].push_back(
+                TaxEvent(date, fee_split->amount_, fee_usd,
+                    EventType::SpentTransactionFee, memo));
+          }
+        }
+
+        // if the fee was paid in a 3rd coin (fee_usd > 0), account for the fee
+        // in the basis (i.e. cost) of the coin that was bought
+        std::string memo =
+            txn->Description() + " (" + fee_split->account_->FullName() + ")";
+        events_[expense_split->coin_->Id()].push_back(
+            TaxEvent(date, expense_split->amount_, amt_usd + fee_usd,
+                EventType::SpentGeneral, memo));
+        events_[wallet_split->coin_->Id()].push_back(TaxEvent(
+            date, -wallet_split->amount_, amt_usd, EventType::TradeSell));
+
+        // done with this transaction
+        continue;
+      }
+    }  // conversion spending transaction
 
     // this has to be a trade transaction on an exchange
     {

@@ -64,8 +64,8 @@ class Taxes {
  public:
   using Accnt = std::shared_ptr<const Account>;
 
-  Taxes(const File& file, Datetime until, Accnt assets, Accnt exchanges,
-      Accnt equity, Accnt expenses, Accnt expense_mining_fees,
+  Taxes(const File& file, Datetime until, Accnt assets, Accnt wallets,
+      Accnt exchanges, Accnt equity, Accnt expenses, Accnt expense_mining_fees,
       Accnt expense_trading_fees, Accnt expense_transaction_fees,
       Accnt income_forks, Accnt income_mining);
 
