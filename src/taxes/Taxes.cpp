@@ -366,8 +366,8 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt wallets,
 
         // if the fee was paid in a 3rd coin (fee_usd > 0), account for the fee
         // in the basis (i.e. cost) of the coin that was bought
-        std::string memo =
-            txn->Description() + " (" + fee_split->account_->FullName() + ")";
+        std::string memo = txn->Description() + " (" +
+                           expense_split->account_->FullName() + ")";
         events_[expense_split->coin_->Id()].push_back(
             TaxEvent(date, expense_split->amount_, amt_usd + fee_usd,
                 EventType::SpentGeneral, memo));
