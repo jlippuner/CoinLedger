@@ -173,9 +173,10 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt exchanges,
         }
 
         // we ignore the fee since that is not actually spent, we just acquire
-        // the net fork income at a cost of 0 USD
+        // the net fork income at its USD value at the time of the fork
+        Amount amt_usd = amt * file.GetHistoricUSDPrice(txn->Date(), coin);
         events_[coin->Id()].push_back(
-            TaxEvent(txn->Date(), amt, 0, EventType::ForkIncome));
+            TaxEvent(txn->Date(), amt, amt_usd, EventType::ForkIncome));
 
         // done with this transaction
         continue;

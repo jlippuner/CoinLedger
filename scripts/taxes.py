@@ -16,7 +16,7 @@ income_forks = f.GetAccount("Income::Hard Forks")
 income_mining = f.GetAccount("Income::Mining")
 
 until = Datetime.Now()
-#until = Datetime.FromUTC("2018-01-09 00:00:00")
+until = Datetime.FromUTC("2018-01-01 00:00:00")
 
 tax = Taxes(f, until, assets, exchanges, equity, expenses, mining_fees,
             trading_fees, txn_fees, income_forks, income_mining)
