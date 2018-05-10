@@ -23,27 +23,27 @@ class Datetime {
 
   static Datetime Now() { return Datetime(time(nullptr)); }
   static Datetime FromISO8601(const std::string& str) {
-    return Parse(str, "%d-%d-%dT%d:%d:%fZ", true);
+    return Parse(str, "%4d-%2d-%2dT%2d:%2d:%fZ", true);
   }
   static Datetime FromUTC(const std::string& str) {
-    return Parse(str, "%d-%d-%d %d:%d:%f", true);
+    return Parse(str, "%4d-%2d-%2d %2d:%2d:%f", true);
   }
   static Datetime FromCoreLocal(const std::string& str) {
-    return Parse(str, "%d-%d-%dT%d:%d:%f", false);
+    return Parse(str, "%4d-%2d-%2dT%2d:%2d:%f", false);
   }
   static Datetime FromElectrumLocal(const std::string& str) {
-    return Parse(str + ":00.000", "%d-%d-%d %d:%d:%f", false);
+    return Parse(str + ":00.000", "%4d-%2d-%2d %2d:%2d:%f", false);
   }
   static Datetime FromXRP(const std::string& str) {
-    return Parse(str, "%d-%d-%dT%d:%d:%f+00:00", true);
+    return Parse(str, "%4d-%2d-%2dT%2d:%2d:%f+00:00", true);
   }
   static Datetime FromBittrex(const std::string& str);
   static Datetime FromUNIXTimestamp(time_t time) { return Datetime(time); }
   static Datetime FromMiningPoolHubUTC(const std::string& str) {
-    return Parse(str, "%d-%d-%d %d:%d:%f (UTC)", true);
+    return Parse(str, "%4d-%2d-%2d %2d:%2d:%f (UTC)", true);
   }
   static Datetime FromNiceHashLocal(const std::string& str) {
-    return Parse(str, "%d-%d-%d %d:%d:%f", false);
+    return Parse(str, "%4d-%2d-%2d %2d:%2d:%f", false);
   }
 
   static size_t size() { return sizeof(time_t); }
@@ -75,7 +75,6 @@ class Datetime {
     return ToStr(utc, "%Y%m%d");
   }
   static int64_t DailyDataDayFromStr(std::string str);
-
 
   bool operator==(const Datetime& other) const { return time_ == other.time_; }
   bool operator!=(const Datetime& other) const { return time_ != other.time_; }

@@ -14,8 +14,8 @@ Datetime Datetime::FromBittrex(const std::string& str) {
   int year, month, day, hour, minute;
   float second;
   char ampm;
-  if (sscanf(str.c_str(), "%d/%d/%d %d:%d:%f %cM", &month, &day, &year, &hour,
-          &minute, &second, &ampm) != 7)
+  if (sscanf(str.c_str(), "%2d/%2d/%4d %2d:%2d:%f %cM", &month, &day, &year,
+          &hour, &minute, &second, &ampm) != 7)
     throw std::invalid_argument(
         "Cannot parse '" + str + "' as a date and time");
 
