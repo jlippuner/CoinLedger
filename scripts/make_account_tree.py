@@ -68,5 +68,25 @@ Account.Create(f, "Binance",  False, trading_fees, False)
 mining_fees = Account.Create(f, "Mining Fees", True, expenses, False)
 Account.Create(f, "MiningPoolHub.com", False, mining_fees, False)
 
+# force fetching prices
+coins = [
+  "ethereum",
+  "groestlcoin",
+  "vertcoin",
+  "siacoin",
+  "dash",
+  "ripple",
+  "bitcoin",
+  "segwit2x",
+  "bitcoin-cash",
+  "tether",
+  "litecoin",
+  "verge"
+]
+date = Datetime.FromUTC("2018-01-01 00:00:00")
+for coin in coins:
+  c = f.GetCoin(coin)
+  f.GetHistoricUSDPrice(date, c)
+
 f.Save("default.sqlite3")
 
