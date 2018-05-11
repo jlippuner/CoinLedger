@@ -694,7 +694,7 @@ void Taxes::PrintGainLoss(std::vector<GainLoss>* gains, bool fuse) const {
         prev.amount += g.amount;
         prev.proceeds += g.proceeds;
         prev.cost += g.cost;
-        prev.various_acquired_dates = true;
+        if (prev.acquired != g.acquired) prev.various_acquired_dates = true;
       } else {
         fused.push_back(g);
       }
@@ -707,8 +707,9 @@ void Taxes::PrintGainLoss(std::vector<GainLoss>* gains, bool fuse) const {
     Amount profit = g.proceeds - g.cost;
     printf("%28s %5s  %10s  %10s  %28s  %28s  %28s\n", g.amount.ToStr().c_str(),
         g.coin->Symbol().c_str(),
-        g.various_acquired_dates ? "VARIOUS" : g.acquired.ToStrDayUTC().c_str(),
-        g.disposed.ToStrDayUTC().c_str(), g.proceeds.ToStr().c_str(),
+        g.various_acquired_dates ? "VARIOUS"
+                                 : g.acquired.ToStrDayUTCIRS().c_str(),
+        g.disposed.ToStrDayUTCIRS().c_str(), g.proceeds.ToStr().c_str(),
         g.cost.ToStr().c_str(), profit.ToStr().c_str());
   }
 }

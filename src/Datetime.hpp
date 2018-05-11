@@ -62,6 +62,7 @@ class Datetime {
   // std::string ToStrLocal() const;
   std::string ToStrUTC() const;
   std::string ToStrDayUTC() const;
+  std::string ToStrDayUTCIRS() const;
 
   // get the end of the day
   Datetime EndOfDay() const;

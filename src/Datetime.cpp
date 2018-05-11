@@ -48,6 +48,11 @@ std::string Datetime::ToStrDayUTC() const {
   return ToStr(utc, "%F");
 }
 
+std::string Datetime::ToStrDayUTCIRS() const {
+  struct tm* utc = gmtime(&time_);
+  return ToStr(utc, "%m/%d/%Y");
+}
+
 Datetime Datetime::EndOfDay() const {
   // if we don't want to account for leap seconds, we could just round down the
   // UNIX timestamp to a multiple of 86400, but we'll use struct tm instead to
