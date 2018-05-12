@@ -44,7 +44,7 @@ void Balance::Print(std::string indent, bool flip_sign,
   // xxxx YYYY = xxxxx... USD
   //       Total zzzz     USD
   if (prices != nullptr) {
-    printf("%s%28sTotal   %28s USD\n", indent.c_str(), "",
+    printf("%s%28s Total   %28s USD\n", indent.c_str(), "",
         total_usd.ToStr().c_str());
   }
 }
