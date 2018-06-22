@@ -155,8 +155,8 @@ std::pair<std::vector<int64_t>, std::vector<Amount>> DailyData::GetData(
         }
       }
 
-      if (header != std::vector<std::string>{"Date", "Open", "High", "Low",
-                        "Close", "Volume", "Market Cap"})
+      if (header != std::vector<std::string>{"Date", "Open*", "High", "Low",
+                        "Close**", "Volume", "Market Cap"})
         throw std::runtime_error("Unexpected header");
     }
 
