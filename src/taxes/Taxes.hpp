@@ -64,20 +64,40 @@ class Taxes {
  public:
   using Accnt = std::shared_ptr<const Account>;
 
+  // To compute taxable events up to a certain point, all the transactions prior
+  // that that point have to be known. That's why this class only takes an until
+  // datetime, which is the end of the period for which taxes should be
+  // computed. To only dsiplay taxable event after a certain datetime, that
+  // datetime is passed in the Print* functions.
   Taxes(const File& file, Datetime until, Accnt assets, Accnt wallets,
       Accnt exchanges, Accnt equity, Accnt expenses, Accnt expense_mining_fees,
       Accnt expense_trading_fees, Accnt expense_transaction_fees,
       Accnt income_forks, Accnt income_mining);
 
-  void PrintEvents(const File& file, EventType type) const;
+  // print events after from datetime
+  void PrintEvents(const File& file, EventType type, Datetime from) const;
 
-  void PrintIncome(const File& file) const;
-  void PrintSpending(const File& file) const;
+  void PrintIncome(const File& file, Datetime from) const;
+  void PrintIncome(const File& file) const {
+    PrintIncome(file, Datetime::Earliest());
+  }
+
+  void PrintSpending(const File& file, Datetime from) const;
+  void PrintSpending(const File& file) const {
+    PrintSpending(file, Datetime::Earliest());
+  }
+
   void PrintCapitalGainsLosses(const File& file, size_t long_term_in_days,
-      bool LIFO, bool fuse = true) const;
+      bool LIFO, Datetime from, bool fuse = true) const;
+  void PrintCapitalGainsLosses(const File& file, size_t long_term_in_days,
+      bool LIFO, bool fuse = true) const {
+    PrintCapitalGainsLosses(
+        file, long_term_in_days, LIFO, Datetime::Earliest(), fuse);
+  }
 
  private:
-  void PrintGainLoss(std::vector<GainLoss>* gains, bool fuse) const;
+  void PrintGainLoss(
+      std::vector<GainLoss>* gains, bool fuse, Datetime from) const;
 
   std::map<std::string, std::vector<TaxEvent>> events_;
 };

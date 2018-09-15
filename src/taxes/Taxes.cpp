@@ -523,50 +523,64 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt wallets,
   }
 }
 
-void Taxes::PrintEvents(const File& file, EventType type) const {
+void Taxes::PrintEvents(const File& file, EventType type, Datetime from) const {
+  // first create a list of events to be printed and sort them by date
+  using CoinEvent = std::pair<std::string, TaxEvent>;
+  std::vector<CoinEvent> sorted_events;
+
   for (auto& it : events_) {
-    auto coin = file.GetCoin(it.first);
     for (auto e : it.second) {
-      if (e.type == type) {
-        printf("%s  %28s %4s = %28s USD  %s\n", e.date.ToStrDayUTC().c_str(),
-            e.amount.ToStr().c_str(), coin->Symbol().c_str(),
-            e.amount_usd.ToStr().c_str(), e.memo.c_str());
+      if ((e.type == type) && (e.date >= from)) {
+        sorted_events.push_back({it.first, e});
       }
     }
   }
+
+  std::sort(sorted_events.begin(), sorted_events.end(),
+      [](const CoinEvent& a, const CoinEvent& b) {
+        return a.second.date < b.second.date;
+      });
+
+  for (auto& ev : sorted_events) {
+    auto coin = file.GetCoin(ev.first);
+    auto& e = ev.second;
+    printf("%s  %28s %4s = %28s USD  %s\n", e.date.ToStrDayUTC().c_str(),
+        e.amount.ToStr().c_str(), coin->Symbol().c_str(),
+        e.amount_usd.ToStr().c_str(), e.memo.c_str());
+  }
 }
 
-void Taxes::PrintIncome(const File& file) const {
+void Taxes::PrintIncome(const File& file, Datetime from) const {
   printf("Fork income\n");
   printf("===========\n");
-  PrintEvents(file, EventType::ForkIncome);
+  PrintEvents(file, EventType::ForkIncome, from);
   printf("\n\n");
 
   printf("Mining income\n");
   printf("========================\n");
-  PrintEvents(file, EventType::MiningIncome);
+  PrintEvents(file, EventType::MiningIncome, from);
   printf("\n\n");
 }
 
-void Taxes::PrintSpending(const File& file) const {
+void Taxes::PrintSpending(const File& file, Datetime from) const {
   printf("General spending\n");
   printf("================\n");
-  PrintEvents(file, EventType::SpentGeneral);
+  PrintEvents(file, EventType::SpentGeneral, from);
   printf("\n\n");
 
   printf("Transaction fee spending\n");
   printf("========================\n");
-  PrintEvents(file, EventType::SpentTransactionFee);
+  PrintEvents(file, EventType::SpentTransactionFee, from);
   printf("\n\n");
 
   printf("Trading fee spending\n");
   printf("====================\n");
-  PrintEvents(file, EventType::SpentTradingFee);
+  PrintEvents(file, EventType::SpentTradingFee, from);
   printf("\n\n");
 }
 
-void Taxes::PrintCapitalGainsLosses(
-    const File& file, size_t long_term_in_days, bool LIFO, bool fuse) const {
+void Taxes::PrintCapitalGainsLosses(const File& file, size_t long_term_in_days,
+    bool LIFO, Datetime from, bool fuse) const {
   std::vector<GainLoss> short_term;
   std::vector<GainLoss> long_term;
 
@@ -627,12 +641,12 @@ void Taxes::PrintCapitalGainsLosses(
 
   printf("Short-Term Disposition of Assets\n");
   printf("================================\n");
-  PrintGainLoss(&short_term, fuse);
+  PrintGainLoss(&short_term, fuse, from);
   printf("\n\n");
 
   printf("Long-Term Disposition of Assets\n");
   printf("===============================\n");
-  PrintGainLoss(&long_term, fuse);
+  PrintGainLoss(&long_term, fuse, from);
   printf("\n\n");
 
   printf("Unrealized Gains and Losses\n");
@@ -657,7 +671,8 @@ void Taxes::PrintCapitalGainsLosses(
   printf("\n\n");
 }
 
-void Taxes::PrintGainLoss(std::vector<GainLoss>* gains, bool fuse) const {
+void Taxes::PrintGainLoss(
+    std::vector<GainLoss>* gains, bool fuse, Datetime from) const {
   printf("%34s  %10s  %10s  %28s  %28s  %28s\n", "Description", "Acquired",
       "Disposed", "Net Proceeds (USD)", "Net Cost (USD)", "Profit/Loss (USD)");
 
@@ -687,8 +702,8 @@ void Taxes::PrintGainLoss(std::vector<GainLoss>* gains, bool fuse) const {
       auto& g = (*gains)[i];
       auto& prev = fused[fused.size() - 1];
 
-      // we can fuse this gain with the previous one if they have the same coin
-      // and were disposed on the same day
+      // we can fuse this gain with the previous one if they have the same
+      // coin and were disposed on the same day
       if ((prev.coin->Id() == g.coin->Id()) &&
           (prev.disposed.EndOfDay() == g.disposed.EndOfDay())) {
         prev.amount += g.amount;
@@ -703,7 +718,19 @@ void Taxes::PrintGainLoss(std::vector<GainLoss>* gains, bool fuse) const {
     fused_ptr = gains;
   }
 
+  // now sort again this time by disposed date first
+  std::sort(fused_ptr->begin(), fused_ptr->end(),
+      [](const GainLoss& a, const GainLoss& b) {
+        if (a.disposed == b.disposed) {
+          return a.coin->Id() < b.coin->Id();
+        } else {
+          return a.disposed < b.disposed;
+        }
+      });
+
   for (auto& g : *fused_ptr) {
+    if (g.disposed < from) continue;
+
     Amount profit = g.proceeds - g.cost;
     printf("%28s %5s  %10s  %10s  %28s  %28s  %28s\n", g.amount.ToStr().c_str(),
         g.coin->Symbol().c_str(),

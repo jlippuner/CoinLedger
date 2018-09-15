@@ -15,12 +15,15 @@ txn_fees = f.GetAccount("Expenses::Transaction Fees")
 income_forks = f.GetAccount("Income::Hard Forks")
 income_mining = f.GetAccount("Income::Mining")
 
-until = Datetime.Now()
-until = Datetime.FromUTC("2018-01-01 00:00:00")
+#until = Datetime.Now()
+start = Datetime.FromUTC("2018-01-01 00:00:00")
+until = Datetime.FromUTC("2019-01-01 00:00:00")
 
 tax = Taxes(f, until, assets, wallets, exchanges, equity, expenses, mining_fees,
             trading_fees, txn_fees, income_forks, income_mining)
 
-tax.PrintIncome(f)
-tax.PrintSpending(f)
-tax.PrintCapitalGainsLosses(f, 365, False)
+tax.PrintIncome(f, start)
+tax.PrintSpending(f, start)
+tax.PrintCapitalGainsLosses(f, 365, False, start)
+
+f.Save("import_start.sqlite3")

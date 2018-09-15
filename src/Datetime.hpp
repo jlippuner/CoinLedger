@@ -20,6 +20,7 @@
 class Datetime {
  public:
   static Datetime FromRaw(const void* ptr) { return Datetime(*((time_t*)ptr)); }
+  static Datetime Earliest() { return Datetime(0); }
 
   static Datetime Now() { return Datetime(time(nullptr)); }
   static Datetime FromISO8601(const std::string& str) {
