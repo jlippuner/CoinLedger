@@ -79,6 +79,11 @@ Amount DailyData::operator()(const Datetime& date) {
 
   if ((idx >= 0) && (idx < (int64_t)prices_.size())) {
     return prices_[idx];
+  } else if (idx == (int64_t)prices_.size()) {
+    printf(
+        "WARNING: Price for current day is not available yet, using price from "
+        "yesterday\n");
+    return prices_[idx - 1];
   } else {
     throw std::runtime_error(
         "Couldn't get requested price after fetching more data");

@@ -101,8 +101,9 @@ void Binance::ImportDeposits(const std::string& import_file, File* file,
   // read the CSV file
   CSV csv(import_file);
 
-  std::vector<std::string> expected_header{
-      "Date", "Coin", "Amount", "Address", "TXID", "Status"};
+  std::vector<std::string> expected_header{"Date", "Coin", "Amount",
+      "TransactionFee", "Address", "TXID", "SourceAddress", "PaymentID",
+      "Status"};
   if (csv.Header() != expected_header)
     throw std::invalid_argument(
         "CSV file '" + import_file + "' has an unexpected header");
@@ -115,8 +116,13 @@ void Binance::ImportDeposits(const std::string& import_file, File* file,
     auto coin_str = rec[1];
     auto coin = file->GetCoinBySymbol(coin_str);
     auto amount = Amount::Parse(rec[2]);
-    auto txid = rec[4];
-    auto status = rec[5];
+    auto txfee = Amount::Parse(rec[3]);
+    auto txid = rec[5];
+    auto status = rec[8];
+
+    if (txfee != 0)
+      throw std::invalid_argument(
+          "Cannot handle non-zero Binance deposit transaction fee");
 
     if (status != "Completed") continue;
 

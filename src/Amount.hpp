@@ -29,7 +29,7 @@ uint128_t ipow_(uint base, uint exp) {
   return exp > 1 ? ipow_(base, (exp >> 1) + (exp & 1)) * ipow_(base, exp >> 1)
                  : base;
 }
-}
+}  // namespace
 
 // D is number of digits after the decimal point
 template <uint D>
@@ -49,7 +49,7 @@ class FixedPoint10 {
 
   static FixedPoint10 FromRaw(const void* ptr) {
     int128_t val;
-    memcpy(&val, ptr, size());
+    memcpy((void*)&val, ptr, size());
     return FixedPoint10(val);
   }
 
