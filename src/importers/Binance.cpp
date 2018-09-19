@@ -96,8 +96,15 @@ void Binance::ImportTrades(const std::string& import_file, File* file,
       num_imported, num_duplicate, import_file.c_str());
 }
 
-void Binance::ImportDeposits(const std::string& import_file, File* file,
-    std::shared_ptr<Account> account) {
+void Binance::ImportDepositsOrWithdrawals(bool deposits,
+    const std::string& import_file, File* file,
+    std::shared_ptr<Account> account, std::shared_ptr<Account> fee_account) {
+  if (deposits) {
+    assert(fee_account == nullptr);
+  } else {
+    assert(fee_account != nullptr);
+  }
+
   // read the CSV file
   CSV csv(import_file);
 
@@ -120,7 +127,7 @@ void Binance::ImportDeposits(const std::string& import_file, File* file,
     auto txid = rec[5];
     auto status = rec[8];
 
-    if (txfee != 0)
+    if (deposits && (txfee != 0))
       throw std::invalid_argument(
           "Cannot handle non-zero Binance deposit transaction fee");
 
@@ -129,9 +136,15 @@ void Binance::ImportDeposits(const std::string& import_file, File* file,
     if (coin == nullptr)
       throw std::invalid_argument("Unknown coin '" + coin_str + "'");
 
+    if (!deposits) {
+      // withdrawn amount does not include fee
+      amount = -(amount + txfee);
+    }
+
     std::string tx_id = coin_str + "_" + txid;
-    std::string split_id = "Binance_deposit_" + tx_id;
-    std::string tx_description = "Binance " + coin_str + " deposit";
+    std::string type = deposits ? "deposit" : "withdrawal";
+    std::string split_id = "Binance_" + type + "_" + tx_id;
+    std::string tx_description = "Binance " + coin_str + " " + type;
 
     // check if a transaction with this import_id already exists
     auto txn = file->GetTransactionFromImportId(tx_id);
@@ -144,16 +157,26 @@ void Binance::ImportDeposits(const std::string& import_file, File* file,
       continue;
     }
 
+    // we will create one or two splits, depending on the type of record
+    std::vector<ProtoSplit> splits;
+
     // create a new split for this deposit
-    ProtoSplit proto_split(account, "", amount, coin, split_id);
+    splits.push_back(ProtoSplit(account, "", amount, coin, split_id));
+
+    if (!deposits && (txfee != 0)) {
+      splits.push_back(
+          ProtoSplit(fee_account, "", txfee, coin, split_id + "_fee"));
+    }
 
     if (txn == nullptr) {
       // we need to create a new transaction
-      Transaction::Create(file, time, tx_description, {proto_split}, tx_id);
+      Transaction::Create(file, time, tx_description, splits, tx_id);
     } else {
-      // the transaction already exists, just add the new split
-      auto split = Split::Create(file, txn, proto_split);
-      txn->AddSplit(split);
+      // the transaction already exists, just add the new splits
+      for (auto& proto_s : splits) {
+        auto split = Split::Create(file, txn, proto_s);
+        txn->AddSplit(split);
+      }
     }
     ++num_imported;
   }
