@@ -20,6 +20,9 @@ class NiceHash {
   static void ImportTransactions(const std::string& import_file, File* file,
       std::shared_ptr<Account> account,
       std::shared_ptr<Account> mining_account);
+
+  static void ImportWithdrawals(const std::string& import_file, File* file,
+      std::shared_ptr<Account> account, std::shared_ptr<Account> fee_account);
 };
 
 #endif  // SRC_IMPORTERS_NICEHASH_HPP_
