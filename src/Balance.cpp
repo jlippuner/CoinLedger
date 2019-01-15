@@ -33,6 +33,9 @@ void Balance::Print(std::string indent, bool flip_sign,
         "%s%28s %5s", indent.c_str(), amt.ToStr().c_str(), c->Symbol().c_str());
 
     if (prices != nullptr) {
+      if (prices->count(c->Id()) != 1)
+        printf("\n\nERROR: No price for %s available\n", c->Symbol().c_str());
+
       Amount usd = amt * prices->at(c->Id());
       total_usd += usd;
       printf(" = %28s USD\n", usd.ToStr().c_str());

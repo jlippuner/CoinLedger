@@ -1,6 +1,7 @@
 #ifndef SRC_PRICES_PRICESOURCE_HPP_
 #define SRC_PRICES_PRICESOURCE_HPP_
 
+#include <cstdlib>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -17,14 +18,14 @@ class File;
 
 class PriceSource {
  public:
-  static const std::string coin_list_url;
-
   static PriceSource& Instance() {
     static PriceSource p;
     return p;
   }
 
   ~PriceSource() { curlpp::terminate(); }
+
+  static std::string GetCoinMarketCapURL();
 
   static std::string GetURL(std::string url) {
     return Instance().DoGetURL(url);

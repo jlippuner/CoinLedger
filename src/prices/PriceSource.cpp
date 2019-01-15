@@ -6,8 +6,23 @@
 
 #include "File.hpp"
 
-const std::string PriceSource::coin_list_url =
-    "https://api.coinmarketcap.com/v1/ticker/?limit=0";
+std::string PriceSource::GetCoinMarketCapURL() {
+  std::string url =
+      "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest";
+  url += "?start=1&limit=5000&convert=USD";
+  url += "&CMC_PRO_API_KEY=";
+
+  auto key = std::getenv("COINMARKETCAP_API_KEY");
+  if (key == nullptr) {
+    printf(
+        "ERROR: No CoinMarketCap.com API key found. Please set the "
+        "COINMARKETCAP_API_KEY environment variable.\n");
+    exit(EXIT_FAILURE);
+  }
+  url += std::string(key);
+
+  return url;
+}
 
 std::string PriceSource::DoGetURL(std::string url) const {
   curlpp::Easy req;
@@ -21,6 +36,7 @@ std::string PriceSource::DoGetURL(std::string url) const {
 }
 
 void PriceSource::AddAllCoins(File* file) {
+  auto coin_list_url = GetCoinMarketCapURL();
   auto json = PriceSource::GetURL(coin_list_url);
 
   Json::Reader reader;
@@ -63,6 +79,7 @@ Amount PriceSource::GetFee(std::shared_ptr<const Coin> coin, std::string txn) {
 }
 
 std::unordered_map<std::string, Amount> PriceSource::GetUSDPrices() {
+  auto coin_list_url = GetCoinMarketCapURL();
   auto json = PriceSource::GetURL(coin_list_url);
 
   Json::Reader reader;
@@ -73,11 +90,16 @@ std::unordered_map<std::string, Amount> PriceSource::GetUSDPrices() {
   std::unordered_map<std::string, Amount> prices;
   prices[Coin::USD_id()] = 1;
 
-  for (auto& c : root) {
+  for (auto& c : root["data"]) {
     std::string price = "0";
-    if (!c["price_usd"].isNull()) price = c["price_usd"].asString();
 
-    prices[c["id"].asString()] = Amount::Parse(price);
+    if (!c["quote"].isNull() && !c["quote"]["USD"].isNull() &&
+        !c["quote"]["USD"]["price"].isNull()) {
+      auto p = c["quote"]["USD"]["price"].asDouble();
+      price = std::to_string(p);
+    }
+
+    prices[c["slug"].asString()] = Amount::Parse(price);
   }
 
   return prices;
