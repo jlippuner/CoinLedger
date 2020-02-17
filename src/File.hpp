@@ -69,9 +69,21 @@ class File {
     coin_by_symbol_.insert({{res->Symbol(), res}});
     return res;
   }
-  std::shared_ptr<Coin> GetCoin(std::string id) { return coins_.at(id); }
+  std::shared_ptr<Coin> GetCoin(std::string id) {
+    try {
+      return coins_.at(id);
+    } catch (std::exception &e) {
+      printf("There is no coin with id '%s'\n", id.c_str());
+      throw e;
+    }
+  }
   std::shared_ptr<const Coin> GetCoin(std::string id) const {
-    return coins_.at(id);
+    try {
+      return coins_.at(id);
+    } catch (std::exception &e) {
+      printf("There is no coin with id '%s'\n", id.c_str());
+      throw e;
+    }
   }
   std::shared_ptr<const Coin> GetCoinBySymbol(std::string symbol) const;
   const std::unordered_map<std::string, std::shared_ptr<Coin>>& Coins() const {

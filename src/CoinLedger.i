@@ -30,6 +30,7 @@
 #include "importers/CoreWallet.hpp"
 #include "importers/CSV.hpp"
 #include "importers/ETHAccount.hpp"
+#include "importers/ETHECR20Account.hpp"
 #include "importers/ElectrumWallet.hpp"
 #include "importers/GDAX.hpp"
 #include "importers/Kraken.hpp"
@@ -69,6 +70,7 @@
 %ignore CSV::operator[];
 %include "importers/CSV.hpp"
 %include "importers/ETHAccount.hpp"
+%include "importers/ETHECR20Account.hpp"
 %include "importers/ElectrumWallet.hpp"
 %include "importers/GDAX.hpp"
 %include "importers/Kraken.hpp"

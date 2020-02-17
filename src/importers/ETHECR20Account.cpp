@@ -1,33 +1,30 @@
-/// \file ETHAccount.cpp
+/// \file ETHECR20Account.cpp
 /// \author jlippuner
-/// \since Apr 21, 2018
+/// \since Feb 16, 2020
 ///
 /// \brief
 ///
 ///
 
-#include "ETHAccount.hpp"
+#include "ETHECR20Account.hpp"
 
 #include <json/reader.h>
 #include <thread>
 
+#include "Split.hpp"
 #include "prices/PriceSource.hpp"
 
-void ETHAccount::Import(const std::string& eth_account, File* file,
+void ETHECR20Account::Import(const std::string& eth_account, File* file,
     std::shared_ptr<Account> account, std::shared_ptr<Account> fee_account,
+    std::shared_ptr<Account> eth_account_for_fee,
     const std::map<std::string, std::string>& transaction_associations) {
-  if (!account->SingleCoin()) {
+  if (account->SingleCoin()) {
     throw std::invalid_argument(
-        "An Ethereum account can only be imported into a single-coin account");
+        "An Ethereum ECR20 account can only be imported into a multi-coin account");
   }
-  auto coin = account->GetCoin();
-  if (coin->Id() != "ethereum")
-    throw std::invalid_argument(
-        "An Ethereum account can only be imported into an ETH account");
-
   // retrieve the transactions for this account
   std::string url =
-      "http://api.etherscan.io/api?module=account&action=txlist&address=" +
+      "http://api.etherscan.io/api?module=account&action=tokentx&address=" +
       eth_account;
 
   Json::Reader reader;
@@ -53,11 +50,13 @@ void ETHAccount::Import(const std::string& eth_account, File* file,
   auto num = root["result"].size();
   if (num >= 10000)
     throw std::runtime_error(
-        "ETH account may have more than 10,000 transactions, this is not "
+        "ETH ECR20 account may have more than 10,000 transactions, this is not "
         "implemented yet");
 
   size_t num_duplicate = 0;
   size_t num_imported = 0;
+
+  printf("Got %i ECR20 transactions\n", num);
 
   for (unsigned int i = 0; i < num; ++i) {
     auto json_txn = root["result"][i];
@@ -68,15 +67,24 @@ void ETHAccount::Import(const std::string& eth_account, File* file,
     auto src = json_txn["from"].asString();
     auto dest = json_txn["to"].asString();
     int128_t amount_int(json_txn["value"].asString());
+    auto symbol = json_txn["tokenSymbol"].asString();
+    int decimal = std::stoi(json_txn["tokenDecimal"].asString());
     int128_t gas_price_int(json_txn["gasPrice"].asString());
-    auto err = json_txn["isError"].asString();
     int128_t gas_used_int(json_txn["gasUsed"].asString());
     auto confirmations = std::stoll(json_txn["confirmations"].asString());
 
-    if ((err != "0") || (confirmations < 6)) continue;
+    if (confirmations < 6) continue;
 
-    Amount amount(amount_int, -18);
+    Amount amount(amount_int, -decimal);
     Amount fee(gas_price_int * gas_used_int, -18);
+
+    auto coin = file->GetCoinBySymbol(symbol);
+    if (!coin) {
+      printf("Skipping token transaction for token %s\n", symbol.c_str());
+      continue;
+    }
+
+    auto eth_coin = file->GetCoinBySymbol("ETH");
 
     std::string desc = "";
     if (src == eth_account) {
@@ -86,7 +94,7 @@ void ETHAccount::Import(const std::string& eth_account, File* file,
       desc = "Deposit";
     } else {
       throw std::runtime_error(
-          "ETH transaction does not involve the ETH account");
+          "ETH transaction does not involve the ETH ECR20 account");
     }
 
     std::string tx_id = coin->Symbol() + "_" + id;
@@ -114,8 +122,9 @@ void ETHAccount::Import(const std::string& eth_account, File* file,
     // if this split sends out money, account for the fee
     if (amount < 0) {
       if (fee > 0) {
-        splits.push_back(ProtoSplit(fee_account, "", fee, coin, split_id));
-        splits.push_back(ProtoSplit(account, "", amount - fee, coin, split_id));
+        splits.push_back(ProtoSplit(fee_account, "", fee, eth_coin, split_id));
+        splits.push_back(ProtoSplit(account, "", amount, coin, split_id));
+        splits.push_back(ProtoSplit(eth_account_for_fee, "", -fee, eth_coin, split_id));
       } else if (fee == 0) {
         splits.push_back(ProtoSplit(account, "", amount, coin, split_id));
       } else if (fee < 0) {
@@ -124,9 +133,6 @@ void ETHAccount::Import(const std::string& eth_account, File* file,
       }
     } else if (amount > 0) {
       splits.push_back(ProtoSplit(account, "", amount, coin, split_id));
-    } else {
-      // this is a fee for a token transaction, ignore it
-      continue;
     }
 
     if (txn == nullptr) {
@@ -145,6 +151,6 @@ void ETHAccount::Import(const std::string& eth_account, File* file,
   }
 
   printf(
-      "Imported %lu records and skipped %lu duplicates from ETH account %s\n",
+      "Imported %lu records and skipped %lu duplicates from ETH ECR20 account %s\n",
       num_imported, num_duplicate, eth_account.c_str());
 }

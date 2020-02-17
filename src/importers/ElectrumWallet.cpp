@@ -25,12 +25,22 @@ void ElectrumWallet::Import(const std::string& import_file, File* file,
   // read the CSV file
   CSV csv(import_file);
 
-  std::vector<std::string> expected_header{
+  std::vector<std::string> expected_header_new{
+      "transaction_hash", "label", "confirmations", "value", "fiat_value", "fee",
+      "fiat_fee", "timestamp"};
+
+  std::vector<std::string> expected_header_old{
       "transaction_hash", "label", "confirmations", "value", "timestamp"};
 
-  if (csv.Header() != expected_header)
-    throw std::invalid_argument(
-        "CSV file '" + import_file + "' has an unexpected header");
+  bool use_new = false;
+  if (csv.Header() != expected_header_old) {
+    if (csv.Header() != expected_header_new) {
+      throw std::invalid_argument(
+          "CSV file '" + import_file + "' has an unexpected header");
+    } else {
+      use_new = true;
+    }
+  }
 
   size_t num_duplicate = 0;
   size_t num_imported = 0;
@@ -40,7 +50,7 @@ void ElectrumWallet::Import(const std::string& import_file, File* file,
     auto label = rec[1];
     auto confirmations = std::stoi(rec[2]);
     auto amount = Amount::Parse(rec[3]);
-    auto time = Datetime::FromElectrumLocal(rec[4]);
+    auto time = Datetime::FromElectrumLocal(rec[use_new ? 7 : 4]);
 
     if (confirmations < 6) continue;
 

@@ -19,7 +19,13 @@ FixedPoint10<D>::FixedPoint10(int128_t i, int magnitude) {
 }
 
 template <uint D>
-FixedPoint10<D> FixedPoint10<D>::Parse(const std::string& str) {
+FixedPoint10<D> FixedPoint10<D>::Parse(const std::string& input_str) {
+  // remove commas
+  std::string str = "";
+  for (auto c : input_str) {
+    if (c != ',') str += c;
+  }
+
   std::regex reg(R"(^\s*(-?|\+?)([0-9]+)(?:\.([0-9]+)|\.)?\s*$)");
   std::smatch m;
   if (!std::regex_match(str, m, reg))

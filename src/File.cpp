@@ -609,6 +609,10 @@ void File::BalanceTransaction(
 
   auto txn = GetTransactionFromImportId(txn_import_id);
 
+  if (!txn) {
+    throw std::invalid_argument("No transaction with this id: " + txn_import_id);
+  }
+
   if (txn->Balanced())
     throw std::invalid_argument(
         "Transaction " + txn_import_id + " is already balanced");
@@ -637,7 +641,7 @@ void File::PrintAccountTree() const {
 void File::PrintTransactions() const {
   std::vector<std::shared_ptr<Transaction>> txns;
   for (auto& e : transactions_) txns.push_back(e.second);
-  PrintTransactions(txns);
+  PrintTransactions(txns, true);
 }
 
 void File::PrintUnbalancedTransactions() const {

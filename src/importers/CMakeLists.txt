@@ -4,6 +4,7 @@ set(srcs
   CoreWallet.cpp
   CSV.cpp
   ETHAccount.cpp
+  ETHECR20Account.cpp
   ElectrumWallet.cpp
   GDAX.cpp
   Kraken.cpp
@@ -20,6 +21,7 @@ set(SWIG_deps
   CoreWallet.hpp
   CSV.hpp
   ETHAccount.hpp
+  ETHECR20Account.hpp
   ElectrumWallet.hpp
   GDAX.hpp
   Kraken.hpp

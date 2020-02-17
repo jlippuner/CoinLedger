@@ -1,6 +1,8 @@
 #include "DailyData.hpp"
 
 #include <htmlcxx/html/ParserDom.h>
+#include <exception>
+#include <thread>
 
 #include "PriceSource.hpp"
 
@@ -26,7 +28,17 @@ Amount DailyData::operator()(const Datetime& date) {
     to = day + 365;
   }
 
-  auto data = GetData(from, to);
+  std::pair<std::vector<int64_t>, std::vector<Amount>> data;
+  while (true) {
+    try {
+      data = GetData(from, to);
+      break;
+    } catch (std::exception & e) {
+      printf("Failed to get data for %s, retrying in 30 seconds...\n", coin_->Id().c_str());
+      std::this_thread::sleep_for(std::chrono::seconds(30));
+    }
+  }
+
   auto& days = data.first;
   auto& ps = data.second;
   size_t old_size = prices_.size();
@@ -85,8 +97,8 @@ Amount DailyData::operator()(const Datetime& date) {
         "yesterday\n");
     return prices_[idx - 1];
   } else {
-    throw std::runtime_error(
-        "Couldn't get requested price after fetching more data");
+    printf("WARNING: Couldn't get requested price after fetching more data, return latest price\n");
+    return prices_[0];
   }
 }
 
@@ -114,8 +126,8 @@ std::pair<std::vector<int64_t>, std::vector<Amount>> DailyData::GetData(
     for (; itr != tree.end(); ++itr) {
       if (itr->tagName() == "div") {
         itr->parseAttributes();
-        auto id = itr->attribute("id");
-        if (id.first && (id.second == "historical-data")) {
+        auto id = itr->attribute("class");
+        if (id.first && (id.second == "cmc-tab-historical-data ctxmt9-0 ASvFA")) {
           found = true;
           break;
         }
@@ -176,12 +188,16 @@ std::pair<std::vector<int64_t>, std::vector<Amount>> DailyData::GetData(
           for (auto td = st.begin(itr); td != st.end(itr); ++td) {
             if (td->tagName() == "td") {
               for (auto c = st.begin(td); c != st.end(td); ++c)
-                row.push_back(c->text());
+                row.push_back(st.begin(c)->text());
             }
           }
 
           if (row.size() != 7)
             throw std::runtime_error("Could not parse table row");
+
+          // printf("Row: ");
+          // for (auto s : row) printf("%s ", s.c_str());
+          // printf("\n");
 
           auto day = Datetime::DailyDataDayFromStr(row[0]);
           if ((days.size() > 0) && (day != (days[days.size() - 1] - 1))) {

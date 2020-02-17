@@ -34,7 +34,7 @@ void Balance::Print(std::string indent, bool flip_sign,
 
     if (prices != nullptr) {
       if (prices->count(c->Id()) != 1)
-        printf("\n\nERROR: No price for %s available\n", c->Symbol().c_str());
+        printf("\n\nERROR: No price for %s (id %s) available\n", c->Symbol().c_str(), c->Id().c_str());
 
       Amount usd = amt * prices->at(c->Id());
       total_usd += usd;
