@@ -18,14 +18,22 @@ void GDAX::Import(const std::string& import_file, File* file,
 
   std::vector<std::string> expected_header{"type", "time", "amount", "balance",
       "amount/balance unit", "transfer id", "trade id", "order id"};
-  if (csv.Header() != expected_header)
+
+  std::vector<std::string> new_expected_header = expected_header;
+  new_expected_header.insert(new_expected_header.begin(), "portfolio");
+
+  bool new_style = (csv.Header() == new_expected_header);
+  if (!new_style && (csv.Header() != expected_header))
     throw std::invalid_argument(
         "CSV file '" + import_file + "' has an unexpected header");
 
   size_t num_duplicate = 0;
   size_t num_imported = 0;
 
-  for (auto& rec : csv.Content()) {
+  for (auto& in_rec : csv.Content()) {
+    auto rec = in_rec;
+    if (new_style) rec.erase(rec.begin());
+
     auto type = rec[0];
     auto time = Datetime::FromISO8601(rec[1]);
     auto amount = Amount::Parse(rec[2]);

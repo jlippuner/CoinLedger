@@ -28,14 +28,24 @@ std::string PriceSource::GetCoinMarketCapURL() {
   return url;
 }
 
+// int writeDebug(curl_infotype, char* data, size_t size) {
+//   fprintf(stderr, "Debug: ");
+//   fwrite(data, size, 1, stderr);
+//   return size;
+// }
+
 std::string PriceSource::DoGetURL(std::string url) const {
   curlpp::Easy req;
+  // req.setOpt(curlpp::options::Verbose(true));
+  // req.setOpt(curlpp::options::DebugFunction(writeDebug));
+
   req.setOpt(curlpp::options::Url(url));
 
   std::ostringstream os;
   req.setOpt(curlpp::options::WriteStream(&os));
 
   req.perform();
+
   return os.str();
 }
 
@@ -49,35 +59,25 @@ void PriceSource::AddAllCoins(File* file) {
     throw std::runtime_error("Could not parse result from " + coin_list_url);
 
   for (auto& c : root["data"]) {
-    Coin::Create(
-        file, c["slug"].asString(), c["name"].asString(), c["symbol"].asString());
+    Coin::Create(file, c["slug"].asString(), c["name"].asString(),
+        c["symbol"].asString());
   }
 }
 
 Amount PriceSource::GetFee(std::shared_ptr<const Coin> coin, std::string txn) {
-  if (txn == "feed930e29695ad948e0a2b92ed818e283cdafaffa22334d8a9b27b32071050f")
-    return Amount::Parse("0.00000849");
-  if (txn == "ace3a7e9a8104604383ebc7b86a73174653052bf22d524e71850c637557525fe")
-    return Amount::Parse("0.00028458");
-  if (txn == "8f0341b0e60bc74a2bb89be91f48f3a94e4efa11c0f671289f0229566e56b40f")
-    return Amount::Parse("0.00000398");
-  if (txn == "131acc9afd350a4bb3fc43b71dc0c64a1cac5a80e401f4a8a7e80a98b7a34bda")
-    return Amount::Parse("0.00000429");
-  // if (txn == "")
-  //   return Amount::Parse("");
-
   auto id = coin->Id();
   if ((id == "bitcoin") || (id == "dash") || (id == "litecoin") ||
       (id == "dogecoin")) {
-    // use chain.so
+    // use sochain.com
     std::string url =
-        "https://chain.so/api/v2/tx/" + coin->Symbol() + "/" + txn;
+        "https://sochain.com/api/v2/tx/" + coin->Symbol() + "/" + txn;
     auto json = PriceSource::GetURL(url);
 
     Json::Reader reader;
     Json::Value root;
     while (!reader.parse(json, root)) {
-      printf("WARNING: Could not parse result from %s, trying again in 5 sec\n", url.c_str());
+      printf("WARNING: Could not parse result from %s, trying again in 5 sec\n",
+          url.c_str());
       printf("res: %s\n", json.c_str());
 
       std::this_thread::sleep_for(std::chrono::seconds(5));

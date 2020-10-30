@@ -127,7 +127,7 @@ std::pair<std::vector<int64_t>, std::vector<Amount>> DailyData::GetData(
       if (itr->tagName() == "div") {
         itr->parseAttributes();
         auto id = itr->attribute("class");
-        if (id.first && (id.second == "cmc-tab-historical-data ctxmt9-0 ASvFA")) {
+        if (id.first && (id.second.find("cmc-tab-historical-data") != std::string::npos)) {
           found = true;
           break;
         }

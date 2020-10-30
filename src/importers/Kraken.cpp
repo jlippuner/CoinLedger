@@ -20,14 +20,22 @@ void Kraken::Import(const std::string& import_file, File* file,
 
   std::vector<std::string> expected_header{"txid", "refid", "time", "type",
       "aclass", "asset", "amount", "fee", "balance"};
-  if (csv.Header() != expected_header)
+
+  std::vector<std::string> new_expected_header = expected_header;
+  new_expected_header.insert(new_expected_header.begin() + 4, "subtype");
+
+  bool new_style = (csv.Header() == new_expected_header);
+  if (!new_style && (csv.Header() != expected_header))
     throw std::invalid_argument(
         "CSV file '" + import_file + "' has an unexpected header");
 
   size_t num_duplicate = 0;
   size_t num_imported = 0;
 
-  for (auto& rec : csv.Content()) {
+  for (auto& in_rec : csv.Content()) {
+    auto rec = in_rec;
+    if (new_style) rec.erase(rec.begin() + 4);
+
     std::string split_id = "Kraken_" + rec[0];
     std::string tx_id = "Kraken_" + rec[1];
     auto time = Datetime::FromUTC(rec[2]);
