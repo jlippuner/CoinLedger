@@ -69,10 +69,10 @@ class Taxes {
   // datetime, which is the end of the period for which taxes should be
   // computed. To only dsiplay taxable event after a certain datetime, that
   // datetime is passed in the Print* functions.
-  Taxes(const File& file, Datetime until, Accnt assets, Accnt wallets,
+  Taxes(const File& file, Datetime until, Accnt assets, Accnt wallets, Accnt ecr20_account,
       Accnt exchanges, Accnt equity, Accnt expenses, Accnt expense_mining_fees,
       Accnt expense_trading_fees, Accnt expense_transaction_fees,
-      Accnt income_forks, Accnt income_mining);
+      Accnt income_forks, Accnt income_airdrop, Accnt income_mining);
 
   // print events after from datetime
   void PrintEvents(const File& file, EventType type, Datetime from) const;

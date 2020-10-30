@@ -7,10 +7,10 @@
 
 #include "prices/PriceSource.hpp"
 
-Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt wallets,
+Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt wallets, Accnt ecr20_account,
     Accnt exchanges, Accnt equity, Accnt expenses, Accnt expense_mining_fees,
     Accnt expense_trading_fees, Accnt expense_transaction_fees,
-    Accnt income_forks, Accnt income_mining) {
+    Accnt income_forks, Accnt income_airdrop, Accnt income_mining) {
   // collect all mining income from the same day into one tax event
   std::unordered_map<std::string, std::map<Datetime, TaxEvent>> mining;
 
@@ -122,7 +122,8 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt wallets,
     {
       std::shared_ptr<const ProtoSplit> fork_income_split = nullptr;
       for (auto it = splits.begin(); it != splits.end(); ++it) {
-        if ((*it)->account_->IsContainedIn(income_forks)) {
+        if ((*it)->account_->IsContainedIn(income_forks) ||
+            (*it)->account_->IsContainedIn(income_airdrop)) {
           fork_income_split = *it;
           splits.erase(it);
           break;
@@ -184,8 +185,22 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt wallets,
     }  // fork income
 
     // if this is a single coin transaction, record what is spent
+    // also if this is a transfer transaction involving an ECR20 token with the
+    // fee paid in ETH, record the fee
     {
-      if (coin != nullptr) {
+      bool decrease_ECR20 = false;
+      bool spend_ETH_txn_fee = false;
+      for (auto &s : splits) {
+        if (s->account_->IsContainedIn(ecr20_account) && (s->amount_ < 0))
+          decrease_ECR20 = true;
+        if (s->account_->IsContainedIn(expense_transaction_fees) &&
+            (s->amount_ > 0) && (s->coin_->Symbol() == "ETH")) {
+          spend_ETH_txn_fee = true;
+          coin = s->coin_;
+        }
+      }
+
+      if ((coin != nullptr) || (decrease_ECR20 && spend_ETH_txn_fee)) {
         std::vector<std::shared_ptr<const ProtoSplit>> expense_splits;
 
         auto it = splits.begin();

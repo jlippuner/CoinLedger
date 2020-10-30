@@ -60,9 +60,11 @@ set(COINLEDGER_EXTERNAL_LIBS "${COINLEDGER_EXTERNAL_LIBS};${CSV_LIBRARIES}")
 include_directories(${CSV_INCLUDE_DIRS})
 
 # we need SWIG
-find_package(SWIG 3 REQUIRED)
-find_package(PythonLibs 2.6 REQUIRED)
-include(${SWIG_USE_FILE})
+find_package(SWIG 4 COMPONENTS python REQUIRED)
+cmake_policy(SET CMP0078 NEW)
+cmake_policy(SET CMP0086 NEW)
+include(UseSWIG)
+find_package(PythonLibs 3.8 REQUIRED)
 include_directories(${PYTHON_INCLUDE_DIRS})
 
 # we need HTMLCXX
@@ -99,9 +101,9 @@ add_subdirectory(bin)
 
 # create SWIG Python bindings
 SET_SOURCE_FILES_PROPERTIES("src/CoinLedger.i" PROPERTIES CPLUSPLUS ON)
-SWIG_ADD_LIBRARY(CoinLedger LANGUAGE python SOURCES "src/CoinLedger.i")
+swig_add_library(CoinLedgerSwig LANGUAGE python SOURCES "src/CoinLedger.i")
 
-SWIG_LINK_LIBRARIES(CoinLedger
+swig_link_libraries(CoinLedgerSwig
   CoinLedger_static
   ${COINLEDGER_EXTERNAL_LIBS}
   ${PYTHON_LIBRARIES}

@@ -50,8 +50,8 @@ void Binance::ImportTrades(const std::string& import_file, File* file,
       throw std::runtime_error("Unknown Binance type '" + type + "'");
     }
 
-    // get quote and base currencies, valid bases are BTC, ETH, BNB, USDT
-    std::regex reg(R"(^([0-9A-Z]+)(BTC|ETH|BNB|USDT)$)");
+    // get quote and base currencies, valid bases are BTC, ETH, BNB, USDT, USDC
+    std::regex reg(R"(^([0-9A-Z]+)(BTC|ETH|BNB|USDT|USDC|TRX|XRP|BUSD|TUSD|PAX|EUR|BKRW|IDRT|NGN|RUB|TRY|ZAR)$)");
     std::smatch m;
     if (!std::regex_match(market, m, reg))
       throw std::invalid_argument(

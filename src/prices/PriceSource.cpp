@@ -121,11 +121,12 @@ std::unordered_map<std::string, Amount> PriceSource::GetUSDPrices() {
   }
 
   // hacks for old currencies or ids
-  prices["modum"] = Amount(0.181212);
-  prices["vivo"] = Amount(0.0143);
-  prices["segwit2x"] = Amount(5.3259);
+  prices["modum"] = Amount(0.0);
+  prices["vivo"] = Amount(0.0);
+  prices["segwit2x"] = Amount(0);
   prices["viuly"] = Amount(0.0);
   prices["xenon"] = Amount(0.0);
+  prices["omisego"] = Amount(0.0);
 
   prices["ripple"] = prices["xrp"];
 

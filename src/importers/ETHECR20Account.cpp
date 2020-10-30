@@ -75,6 +75,8 @@ void ETHECR20Account::Import(const std::string& eth_account, File* file,
 
     if (confirmations < 6) continue;
 
+    if (symbol == "VIU") continue;
+
     Amount amount(amount_int, -decimal);
     Amount fee(gas_price_int * gas_used_int, -18);
 
