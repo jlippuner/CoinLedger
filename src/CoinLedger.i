@@ -26,6 +26,7 @@
 #include "File.hpp"
 
 #include "importers/Binance.hpp"
+#include "importers/CelsiusWallet.hpp"
 #include "importers/Bittrex.hpp"
 #include "importers/CoreWallet.hpp"
 #include "importers/CSV.hpp"
@@ -65,6 +66,7 @@
 %include "File.hpp"
 
 %include "importers/Binance.hpp"
+%include "importers/CelsiusWallet.hpp"
 %include "importers/Bittrex.hpp"
 %include "importers/CoreWallet.hpp"
 %ignore CSV::operator[];

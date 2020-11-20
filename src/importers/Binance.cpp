@@ -98,7 +98,8 @@ void Binance::ImportTrades(const std::string& import_file, File* file,
 
 void Binance::ImportDepositsOrWithdrawals(bool deposits,
     const std::string& import_file, File* file,
-    std::shared_ptr<Account> account, std::shared_ptr<Account> fee_account) {
+    std::shared_ptr<Account> account, std::shared_ptr<Account> fee_account,
+    const std::map<std::string, std::string>& transaction_associations) {
   if (deposits) {
     assert(fee_account == nullptr);
   } else {
@@ -108,7 +109,7 @@ void Binance::ImportDepositsOrWithdrawals(bool deposits,
   // read the CSV file
   CSV csv(import_file);
 
-  std::vector<std::string> expected_header{"Date", "Coin", "Amount",
+  std::vector<std::string> expected_header{"Date(UTC)", "Coin", "Amount",
       "TransactionFee", "Address", "TXID", "SourceAddress", "PaymentID",
       "Status"};
   if (csv.Header() != expected_header)
@@ -142,6 +143,10 @@ void Binance::ImportDepositsOrWithdrawals(bool deposits,
     }
 
     std::string tx_id = coin_str + "_" + txid;
+    if (transaction_associations.count(txid) > 0) {
+      tx_id = transaction_associations.at(txid);
+    }
+
     std::string type = deposits ? "deposit" : "withdrawal";
     std::string split_id = "Binance_" + type + "_" + tx_id;
     std::string tx_description = "Binance " + coin_str + " " + type;

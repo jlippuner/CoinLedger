@@ -28,6 +28,25 @@ Datetime Datetime::FromBittrex(const std::string& str) {
   return MakeDatetime(year, month, day, hour, minute, second, true);
 }
 
+Datetime Datetime::FromCelsius(const std::string& str) {
+  int year, day, hour, minute;
+  char month_char[20];
+  char ampm;
+  if (sscanf(str.c_str(), "%s %d, %4d %d:%2d %cM", month_char, &day, &year,
+          &hour, &minute, &ampm) != 6)
+    throw std::invalid_argument(
+        "Cannot parse '" + str + "' as a date and time");
+
+  if (hour == 12) hour = 0;
+  if ((ampm != 'A') && (ampm != 'P'))
+    throw std::invalid_argument(
+        "Expected AM or PM at the end of '" + str + "'");
+  if (ampm == 'P') hour += 12;
+
+  auto month = GetMonth(month_char);
+  return MakeDatetime(year, month, day, hour, minute, 0, true);
+}
+
 std::string Datetime::ToStrLocalFile() const {
   struct tm* local_time = localtime(&time_);
   return ToStr(local_time, "%F_%T");
@@ -69,37 +88,27 @@ int64_t Datetime::DailyDataDayFromStr(std::string str) {
     throw std::invalid_argument(
         "Cannot parse '" + str + "' as a date and time");
 
-  std::string month_str(month_char);
-  int month = 0;
-  if (month_str == "Jan")
-    month = 1;
-  else if (month_str == "Feb")
-    month = 2;
-  else if (month_str == "Mar")
-    month = 3;
-  else if (month_str == "Apr")
-    month = 4;
-  else if (month_str == "May")
-    month = 5;
-  else if (month_str == "Jun")
-    month = 6;
-  else if (month_str == "Jul")
-    month = 7;
-  else if (month_str == "Aug")
-    month = 8;
-  else if (month_str == "Sep")
-    month = 9;
-  else if (month_str == "Oct")
-    month = 10;
-  else if (month_str == "Nov")
-    month = 11;
-  else if (month_str == "Dec")
-    month = 12;
-  else
-    throw std::invalid_argument("Invalid month string '" + month_str + "'");
-
+  auto month = GetMonth(month_char);
   auto date = MakeDatetime(year, month, day, 12, 0, 0, true);
   return date.DailyDataDay();
+}
+
+int Datetime::GetMonth(const char* str) {
+  std::string month_str(str);
+  if ((month_str == "Jan") || (month_str == "Janunary")) return 1;
+  if ((month_str == "Feb") || (month_str == "February")) return 2;
+  if ((month_str == "Mar") || (month_str == "March")) return 3;
+  if ((month_str == "Apr") || (month_str == "April")) return 4;
+  if ((month_str == "May") || (month_str == "May")) return 5;
+  if ((month_str == "Jun") || (month_str == "June")) return 6;
+  if ((month_str == "Jul") || (month_str == "July")) return 7;
+  if ((month_str == "Aug") || (month_str == "August")) return 8;
+  if ((month_str == "Sep") || (month_str == "September")) return 9;
+  if ((month_str == "Oct") || (month_str == "October")) return 10;
+  if ((month_str == "Nov") || (month_str == "November")) return 11;
+  if ((month_str == "Dec") || (month_str == "December")) return 12;
+
+  throw std::invalid_argument("Invalid month string '" + month_str + "'");
 }
 
 Datetime Datetime::Parse(const std::string& str, const char* format, bool UTC) {
@@ -113,21 +122,13 @@ Datetime Datetime::Parse(const std::string& str, const char* format, bool UTC) {
   return MakeDatetime(year, month, day, hour, minute, second, UTC);
 }
 
-Datetime Datetime::MakeDatetime(int year, int month, int day, int hour,
-    int minute, float second, bool UTC) {
-  struct tm datetime;
-  datetime.tm_year = year - 1900;
-  datetime.tm_mon = month - 1;
-  datetime.tm_mday = day;
-  datetime.tm_hour = hour;
-  datetime.tm_min = minute;
-  datetime.tm_sec = second;
-  if (UTC) datetime.tm_isdst = 0;
+Datetime Datetime::MakeDatetime(struct tm tm_time, bool UTC) {
+  if (UTC) tm_time.tm_isdst = 0;
 
   if (UTC) {
     // unfortunately, C can only convert a struct tm to time_t by interpreting
     // it as local time
-    time_t local = mktime(&datetime);
+    time_t local = mktime(&tm_time);
 
     // find offset between local and UTC
     time_t zero = 0;
@@ -137,8 +138,21 @@ Datetime Datetime::MakeDatetime(int year, int month, int day, int hour,
 
     return Datetime(local - utc_time);
   } else {
-    return Datetime(mktime(&datetime));
+    return Datetime(mktime(&tm_time));
   }
+}
+
+Datetime Datetime::MakeDatetime(int year, int month, int day, int hour,
+    int minute, float second, bool UTC) {
+  struct tm datetime;
+  datetime.tm_year = year - 1900;
+  datetime.tm_mon = month - 1;
+  datetime.tm_mday = day;
+  datetime.tm_hour = hour;
+  datetime.tm_min = minute;
+  datetime.tm_sec = second;
+
+  return MakeDatetime(datetime, UTC);
 }
 
 std::string Datetime::ToStr(struct tm* time_tm, const char* format) {

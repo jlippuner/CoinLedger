@@ -1,6 +1,7 @@
 set(srcs
   Binance.cpp
   Bittrex.cpp
+  CelsiusWallet.cpp
   CoreWallet.cpp
   CSV.cpp
   ETHAccount.cpp
@@ -18,6 +19,7 @@ add_CoinLedger_library(importers "${srcs}")
 set(SWIG_deps
   Binance.hpp
   Bittrex.hpp
+  CelsiusWallet.hpp
   CoreWallet.hpp
   CSV.hpp
   ETHAccount.hpp

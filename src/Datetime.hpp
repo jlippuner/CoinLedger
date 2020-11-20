@@ -46,6 +46,7 @@ class Datetime {
   static Datetime FromNiceHashLocal(const std::string& str) {
     return Parse(str, "%4d-%2d-%2d %2d:%2d:%f", false);
   }
+  static Datetime FromCelsius(const std::string& str);
 
   static size_t size() { return sizeof(time_t); }
   const void* Raw() const { return (void*)&time_; }
@@ -78,6 +79,8 @@ class Datetime {
   }
   static int64_t DailyDataDayFromStr(std::string str);
 
+  static int GetMonth(const char *str);
+
   bool operator==(const Datetime& other) const { return time_ == other.time_; }
   bool operator!=(const Datetime& other) const { return time_ != other.time_; }
   bool operator<(const Datetime& other) const { return time_ < other.time_; }
@@ -89,6 +92,7 @@ class Datetime {
   Datetime(time_t time) : time_(time) {}
 
   static Datetime Parse(const std::string& str, const char* format, bool UTC);
+  static Datetime MakeDatetime(struct tm time_tm, bool UTC);
   static Datetime MakeDatetime(int year, int month, int day, int hour,
       int minute, float second, bool UTC);
 
