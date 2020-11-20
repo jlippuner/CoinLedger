@@ -7,10 +7,11 @@
 
 #include "prices/PriceSource.hpp"
 
-Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt wallets, Accnt ecr20_account,
-    Accnt exchanges, Accnt equity, Accnt expenses, Accnt expense_mining_fees,
-    Accnt expense_trading_fees, Accnt expense_transaction_fees,
-    Accnt income_forks, Accnt income_airdrop, Accnt income_mining) {
+Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt wallets,
+    Accnt ecr20_account, Accnt exchanges, Accnt equity, Accnt expenses,
+    Accnt expense_mining_fees, Accnt expense_trading_fees,
+    Accnt expense_transaction_fees, Accnt income_other, Accnt income_mining,
+    Accnt income_trade) {
   // collect all mining income from the same day into one tax event
   std::unordered_map<std::string, std::map<Datetime, TaxEvent>> mining;
 
@@ -118,23 +119,25 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt wallets, Accn
       }
     }  // mining transaction
 
-    // check if this is fork income
+    // check if this is other/trade income
     {
-      std::shared_ptr<const ProtoSplit> fork_income_split = nullptr;
+      std::shared_ptr<const ProtoSplit> other_income_split = nullptr;
       for (auto it = splits.begin(); it != splits.end(); ++it) {
-        if ((*it)->account_->IsContainedIn(income_forks) ||
-            (*it)->account_->IsContainedIn(income_airdrop)) {
-          fork_income_split = *it;
+        if ((*it)->account_->IsContainedIn(income_other) ||
+            (*it)->account_->IsContainedIn(income_trade)) {
+          other_income_split = *it;
           splits.erase(it);
           break;
         }
       }
 
-      if (fork_income_split != nullptr) {
-        // this is fork income, make sure this is a single-coin transaction
+      if (other_income_split != nullptr) {
+        // this is other/trade income, make sure this is a single-coin
+        // transaction
         if (coin == nullptr) {
           txn->Print(true);
-          throw std::runtime_error("Got a multi-coin fork income transaction");
+          throw std::runtime_error(
+              "Got a multi-coin other/trade income transaction");
         }
 
         // we expect to have an asset split and maybe a transaction fee split
@@ -159,30 +162,34 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt wallets, Accn
         if (splits.size() > 0) {
           txn->Print(true);
           throw std::runtime_error(
-              "Leftover splits in fork income transaction");
+              "Leftover splits in other/trade income transaction");
         }
 
         if (asset == nullptr) {
           txn->Print(true);
-          throw std::runtime_error("No asset split in fork income transaction");
+          throw std::runtime_error(
+              "No asset split in other/trade income transaction");
         }
 
         Amount amt = asset->amount_;
         if (amt <= 0) {
           txn->Print(true);
-          throw std::runtime_error("Expect positive fork income");
+          throw std::runtime_error("Expect positive other/trade income");
         }
 
         // we ignore the fee since that is not actually spent, we just acquire
-        // the net fork income at its USD value at the time of the fork
+        // the net other/trade income at its USD value at the time of the
+        // other/trade
         Amount amt_usd = amt * file.GetHistoricUSDPrice(txn->Date(), coin);
-        events_[coin->Id()].push_back(
-            TaxEvent(txn->Date(), amt, amt_usd, EventType::ForkIncome));
+        events_[coin->Id()].push_back(TaxEvent(txn->Date(), amt, amt_usd,
+            other_income_split->account_->IsContainedIn(income_other)
+                ? EventType::OtherIncome
+                : EventType::TradeIncome));
 
         // done with this transaction
         continue;
       }
-    }  // fork income
+    }  // other/trade income
 
     // if this is a single coin transaction, record what is spent
     // also if this is a transfer transaction involving an ECR20 token with the
@@ -190,7 +197,7 @@ Taxes::Taxes(const File& file, Datetime until, Accnt assets, Accnt wallets, Accn
     {
       bool decrease_ECR20 = false;
       bool spend_ETH_txn_fee = false;
-      for (auto &s : splits) {
+      for (auto& s : splits) {
         if (s->account_->IsContainedIn(ecr20_account) && (s->amount_ < 0))
           decrease_ECR20 = true;
         if (s->account_->IsContainedIn(expense_transaction_fees) &&
@@ -566,14 +573,19 @@ void Taxes::PrintEvents(const File& file, EventType type, Datetime from) const {
 }
 
 void Taxes::PrintIncome(const File& file, Datetime from) const {
-  printf("Fork income\n");
-  printf("===========\n");
-  PrintEvents(file, EventType::ForkIncome, from);
+  printf("Other income\n");
+  printf("============\n");
+  PrintEvents(file, EventType::OtherIncome, from);
   printf("\n\n");
 
   printf("Mining income\n");
-  printf("========================\n");
+  printf("=============\n");
   PrintEvents(file, EventType::MiningIncome, from);
+  printf("\n\n");
+
+  printf("Trade income\n");
+  printf("============\n");
+  PrintEvents(file, EventType::TradeIncome, from);
   printf("\n\n");
 }
 
@@ -615,7 +627,8 @@ void Taxes::PrintCapitalGainsLosses(const File& file, size_t long_term_in_days,
 
     for (auto& e : it.second) {
       if ((e.type == EventType::MiningIncome) ||
-          (e.type == EventType::ForkIncome) ||
+          (e.type == EventType::OtherIncome) ||
+          (e.type == EventType::TradeIncome) ||
           (e.type == EventType::TradeBuy)) {
         InventoryItem new_inv(e.date, e.amount, e.amount_usd);
         inventories.at(coin_id).Acquire(new_inv);
