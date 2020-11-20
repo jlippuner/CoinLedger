@@ -74,6 +74,8 @@ class FixedPoint10 {
     return val_ <= other.val_;
   }
 
+  FixedPoint10 Abs() const { return val_ >= 0 ? *this : -(*this); }
+
   // arithmetic operators
   FixedPoint10 operator-() const { return FixedPoint10(-val_); }
   FixedPoint10 operator+(const FixedPoint10& other) const {

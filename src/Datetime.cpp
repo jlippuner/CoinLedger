@@ -82,13 +82,11 @@ Datetime Datetime::EndOfDay() const {
 }
 
 int64_t Datetime::DailyDataDayFromStr(std::string str) {
-  char month_char[4];
-  int day, year;
-  if (sscanf(str.c_str(), "%3s %2d, %4d", month_char, &day, &year) != 3)
+  int day, month, year;
+  if (sscanf(str.c_str(), "%4d-%2d-%2dT23:59:59.999Z", &year, &month, &day) != 3)
     throw std::invalid_argument(
         "Cannot parse '" + str + "' as a date and time");
 
-  auto month = GetMonth(month_char);
   auto date = MakeDatetime(year, month, day, 12, 0, 0, true);
   return date.DailyDataDay();
 }

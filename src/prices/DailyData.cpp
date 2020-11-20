@@ -4,6 +4,9 @@
 #include <exception>
 #include <thread>
 
+#include <json/reader.h>
+#include <json/writer.h>
+
 #include "PriceSource.hpp"
 
 Amount DailyData::operator()(const Datetime& date) {
@@ -33,8 +36,9 @@ Amount DailyData::operator()(const Datetime& date) {
     try {
       data = GetData(from, to);
       break;
-    } catch (std::exception & e) {
-      printf("Failed to get data for %s, retrying in 30 seconds...\n", coin_->Id().c_str());
+    } catch (std::exception& e) {
+      printf("Failed to get data for %s, retrying in 30 seconds...\n",
+          coin_->Id().c_str());
       std::this_thread::sleep_for(std::chrono::seconds(30));
     }
   }
@@ -57,8 +61,12 @@ Amount DailyData::operator()(const Datetime& date) {
     // existing data
     if (days[days.size() - 1] != start_day_)
       throw std::runtime_error("Unexpected last day of new data");
-    if (ps[ps.size() - 1] != prices_[0])
+
+    if ((ps[ps.size() - 1] / prices_[0] - 1.0).Abs() > Amount::Parse("0.01")) {
+      printf("Old price: %s, new price: %s\n",
+          ps[ps.size() - 1].ToStr().c_str(), prices_[0].ToStr().c_str());
       throw std::runtime_error("Price mismatch between new and existing data");
+    }
 
     start_day_ = days[0];
     prices_.insert(prices_.begin(), ps.begin(), ps.end() - 1);
@@ -74,9 +82,14 @@ Amount DailyData::operator()(const Datetime& date) {
       // of the new data
       if (days[0] != (start_day_ + (int64_t)prices_.size() - 1))
         throw std::runtime_error("Unexpected first day of new data");
-      if (ps[0] != prices_[prices_.size() - 1])
+
+      if ((ps[0] / prices_[prices_.size() - 1] - 1.0).Abs() >
+          Amount::Parse("0.01")) {
+        printf("Old price: %s, new price: %s\n",
+            prices_[prices_.size() - 1].ToStr().c_str(), ps[0].ToStr().c_str());
         throw std::runtime_error(
             "Price mismatch between new and existing data");
+      }
 
       prices_.insert(prices_.end(), ps.begin() + 1, ps.end());
     }
@@ -97,7 +110,9 @@ Amount DailyData::operator()(const Datetime& date) {
         "yesterday\n");
     return prices_[idx - 1];
   } else {
-    printf("WARNING: Couldn't get requested price after fetching more data, return latest price\n");
+    printf(
+        "WARNING: Couldn't get requested price after fetching more data, "
+        "return latest price\n");
     return prices_[0];
   }
 }
@@ -120,102 +135,63 @@ std::pair<std::vector<int64_t>, std::vector<Amount>> DailyData::GetData(
     ParserDom parser;
     auto tree = parser.parseTree(res);
 
-    // find div with id historical-data
+    // get the content of <script id="__NEXT_DATA__">
     auto itr = tree.begin();
     bool found = false;
     for (; itr != tree.end(); ++itr) {
-      if (itr->tagName() == "div") {
+      if (itr->tagName() == "script") {
         itr->parseAttributes();
-        auto id = itr->attribute("class");
-        if (id.first && (id.second.find("cmc-tab-historical-data") != std::string::npos)) {
+        auto id = itr->attribute("id");
+        if (id.first && (id.second == "__NEXT_DATA__")) {
           found = true;
           break;
         }
       }
     }
-    if (!found) throw std::runtime_error("Could not find historical-data");
+    if (!found) throw std::runtime_error("Could not find __NEXT_DATA__");
 
-    auto st = tree.subtree(tree.begin(itr), tree.end(itr));
+    auto json = tree.begin(itr)->text();
+    Json::Reader reader;
+    Json::Value root;
+    if (!reader.parse(json, root))
+      throw std::runtime_error(
+          "Could not parse __NEXT_DATA__ JSON from " + url);
 
-    // find thead and tbody
-    auto thead = st.begin();
-    found = false;
-    for (; thead != st.end(); ++thead) {
-      if (thead->tagName() == "thead") {
-        found = true;
-        break;
-      }
-    }
-    if (!found) throw std::runtime_error("Couldn't find thead");
-    auto tbody = st.begin();
-    found = false;
-    for (; tbody != st.end(); ++tbody) {
-      if (tbody->tagName() == "tbody") {
-        found = true;
-        break;
-      }
-    }
-    if (!found) throw std::runtime_error("Couldn't find tbody");
+    auto hist_root =
+        root["props"]["initialState"]["cryptocurrency"]["ohlcvHistorical"];
 
-    // check the header
-    {
-      std::vector<std::string> header;
+    if (hist_root.size() != 1)
+      throw std::runtime_error("Expected just one element but got " +
+                               std::to_string(hist_root.size()));
 
-      for (auto itr = st.begin(thead); itr != st.end(thead); ++itr) {
-        if (itr->tagName() == "tr") {
-          for (auto th = st.begin(itr); th != st.end(itr); ++th) {
-            if (th->tagName() == "th") {
-              for (auto c = st.begin(th); c != st.end(th); ++c)
-                header.push_back(c->text());
-            }
-          }
-        }
-      }
-
-      if (header != std::vector<std::string>{"Date", "Open*", "High", "Low",
-                        "Close**", "Volume", "Market Cap"})
-        throw std::runtime_error("Unexpected header");
-    }
+    auto hist = *hist_root.begin();
+    if (hist["symbol"].asString() != coin_->Symbol())
+      throw std::runtime_error(
+          "Historic data symbol mismatch: " + hist["symbol"].asString() +
+          " != " + coin_->Symbol());
 
     // read the table
     std::vector<int64_t> days;
     std::vector<Amount> prices;
     {
-      for (auto itr = st.begin(tbody); itr != st.end(tbody); ++itr) {
-        if (itr->tagName() == "tr") {
-          std::vector<std::string> row;
+      for (const auto& q : hist["quotes"]) {
+        std::string time_str = q["quote"]["USD"]["timestamp"].asString();
+        std::string close_str = q["quote"]["USD"]["close"].asString();
 
-          for (auto td = st.begin(itr); td != st.end(itr); ++td) {
-            if (td->tagName() == "td") {
-              for (auto c = st.begin(td); c != st.end(td); ++c)
-                row.push_back(st.begin(c)->text());
-            }
+        auto price = Amount::Parse(close_str);
+
+        auto day = Datetime::DailyDataDayFromStr(time_str);
+        if ((days.size() > 0) && (day != (days[days.size() - 1] - 1))) {
+          // fill in gap
+          for (int64_t d = days[days.size() - 1] - 1; d > day; --d) {
+            days.push_back(d);
+            prices.push_back(price);
           }
-
-          if (row.size() != 7)
-            throw std::runtime_error("Could not parse table row");
-
-          // printf("Row: ");
-          // for (auto s : row) printf("%s ", s.c_str());
-          // printf("\n");
-
-          auto day = Datetime::DailyDataDayFromStr(row[0]);
-          if ((days.size() > 0) && (day != (days[days.size() - 1] - 1))) {
-            // fill in gap
-            for (int64_t d = days[days.size() - 1] - 1; d > day; --d) {
-              days.push_back(d);
-              prices.push_back(Amount::Parse(row[4]));
-            }
-          }
-          days.push_back(day);
-          prices.push_back(Amount::Parse(row[4]));
         }
+        days.push_back(day);
+        prices.push_back(price);
       }
     }
-
-    // the data is provided in reverse order
-    std::reverse(days.begin(), days.end());
-    std::reverse(prices.begin(), prices.end());
 
     return {days, prices};
   } catch (const std::exception& ex) {
