@@ -53,6 +53,9 @@ void GDAX::Import(const std::string& import_file, File* file,
     } else if ((type == "match") || (type == "fee")) {
       id_suffix = trade_id;
       tx_description += "trade";
+    } else if (type == "conversion") {
+      id_suffix = "conversion_" + rec[1];
+      tx_description += coin_str + " conversion";
     } else {
       throw std::runtime_error("Unknown GDAX type '" + type + "'");
     }

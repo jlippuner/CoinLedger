@@ -51,7 +51,8 @@ void Binance::ImportTrades(const std::string& import_file, File* file,
     }
 
     // get quote and base currencies, valid bases are BTC, ETH, BNB, USDT, USDC
-    std::regex reg(R"(^([0-9A-Z]+)(BTC|ETH|BNB|USDT|USDC|TRX|XRP|BUSD|TUSD|PAX|EUR|BKRW|IDRT|NGN|RUB|TRY|ZAR)$)");
+    std::regex reg(
+        R"(^([0-9A-Z]+)(BTC|ETH|BNB|USDT|USDC|TRX|XRP|BUSD|TUSD|PAX|EUR|BKRW|IDRT|NGN|RUB|TRY|ZAR)$)");
     std::smatch m;
     if (!std::regex_match(market, m, reg))
       throw std::invalid_argument(
@@ -85,8 +86,10 @@ void Binance::ImportTrades(const std::string& import_file, File* file,
     splits.push_back(ProtoSplit(account, "", quote_amt, quote, ""));
 
     // the fee split pair
-    splits.push_back(ProtoSplit(account, "", -fee, fee_coin, ""));
-    splits.push_back(ProtoSplit(fee_account, "", fee, fee_coin, ""));
+    if (fee != 0) {
+      splits.push_back(ProtoSplit(account, "", -fee, fee_coin, ""));
+      splits.push_back(ProtoSplit(fee_account, "", fee, fee_coin, ""));
+    }
 
     Transaction::Create(file, time, tx_description, splits, tx_id);
     ++num_imported;

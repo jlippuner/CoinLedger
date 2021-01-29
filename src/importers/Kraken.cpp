@@ -14,7 +14,8 @@ void Kraken::Import(const std::string& import_file, File* file,
     std::shared_ptr<Account> account,
     std::shared_ptr<Account> trading_fee_account,
     std::shared_ptr<Account> transaction_fee_account,
-    std::shared_ptr<Account> usd_investment_account) {
+    std::shared_ptr<Account> usd_investment_account,
+    const std::map<std::string, std::string>& transaction_associations) {
   // read the CSV file
   CSV csv(import_file);
 
@@ -36,8 +37,10 @@ void Kraken::Import(const std::string& import_file, File* file,
     auto rec = in_rec;
     if (new_style) rec.erase(rec.begin() + 4);
 
+    if (rec[0] == "") continue;
+
     std::string split_id = "Kraken_" + rec[0];
-    std::string tx_id = "Kraken_" + rec[1];
+    std::string txid = rec[1];
     auto time = Datetime::FromUTC(rec[2]);
     auto type = rec[3];
     auto aclass = rec[4];
@@ -109,6 +112,11 @@ void Kraken::Import(const std::string& import_file, File* file,
       tx_description += "trade";
     } else {
       throw std::runtime_error("Unknown Kraken type '" + type + "'");
+    }
+
+    std::string tx_id = "Kraken_" + txid;
+    if (transaction_associations.count(txid) > 0) {
+      tx_id = transaction_associations.at(txid);
     }
 
     // check if a transaction with this import_id already exists

@@ -22,6 +22,7 @@
 #include "UUID.hpp"
 
 #include "prices/DailyData.hpp"
+#include "prices/PriceSource.hpp"
 
 // This class represents a CoinLedger file that stores all the information
 // contained in the program. The actual file used to write to and read from is
@@ -63,6 +64,8 @@ class File {
   Amount GetHistoricUSDPrice(
       Datetime time, std::shared_ptr<const Coin> coin) const;
 
+  void AddNewCoins() { PriceSource::AddAllCoins(this, true); }
+
   std::shared_ptr<Coin> AddCoin(const Coin& coin) {
     auto res =
         coins_.emplace(coin.Id(), std::make_shared<Coin>(coin)).first->second;
@@ -72,7 +75,7 @@ class File {
   std::shared_ptr<Coin> GetCoin(std::string id) {
     try {
       return coins_.at(id);
-    } catch (std::exception &e) {
+    } catch (std::exception& e) {
       printf("There is no coin with id '%s'\n", id.c_str());
       throw e;
     }
@@ -80,7 +83,7 @@ class File {
   std::shared_ptr<const Coin> GetCoin(std::string id) const {
     try {
       return coins_.at(id);
-    } catch (std::exception &e) {
+    } catch (std::exception& e) {
       printf("There is no coin with id '%s'\n", id.c_str());
       throw e;
     }

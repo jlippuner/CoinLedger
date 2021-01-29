@@ -49,7 +49,7 @@ std::string PriceSource::DoGetURL(std::string url) const {
   return os.str();
 }
 
-void PriceSource::AddAllCoins(File* file) {
+void PriceSource::AddAllCoins(File* file, bool unique_symbol) {
   auto coin_list_url = GetCoinMarketCapURL();
   auto json = PriceSource::GetURL(coin_list_url);
 
@@ -59,8 +59,10 @@ void PriceSource::AddAllCoins(File* file) {
     throw std::runtime_error("Could not parse result from " + coin_list_url);
 
   for (auto& c : root["data"]) {
-    Coin::Create(file, c["slug"].asString(), c["name"].asString(),
-        c["symbol"].asString());
+    auto symbol = c["symbol"].asString();
+    if (unique_symbol && (file->CoinBySymbol().count(symbol) > 0)) continue;
+
+    Coin::Create(file, c["slug"].asString(), c["name"].asString(), symbol);
   }
 }
 

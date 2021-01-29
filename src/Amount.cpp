@@ -26,6 +26,54 @@ FixedPoint10<D> FixedPoint10<D>::Parse(const std::string& input_str) {
     if (c != ',') str += c;
   }
 
+  // handle exponents
+  std::transform(str.begin(), str.end(), str.begin(),
+      [](unsigned char c) { return std::tolower(c); });
+  auto eloc = str.find('e');
+  if (eloc != std::string::npos) {
+    auto number = str.substr(0, eloc);
+    int exp = std::stoi(str.substr(eloc + 1));
+
+    if (exp == 0) {
+      // nothing to do
+      str = number;
+    } else {
+      // need to move the decimal place accordingly
+      auto move_decimal = [](const std::string& s, bool forward) {
+        auto dec = s.find('.');
+        auto res = s;
+
+        // first make sure we have a decimal point
+        if (dec == std::string::npos) {
+          res += ".0";
+          dec = res.size() - 2;
+        } else if (dec == 0) {
+          res = "0" + s;
+          dec = 1;
+        } else if (dec == s.size() - 1) {
+          res = s + "0";
+          dec = res.size() - 2;
+        }
+
+        // swap decimal point with digit before/after it
+        auto dig = dec + (forward ? -1 : 1);
+        res[dec] = res[dig];
+        res[dig] = '.';
+
+        return res;
+      };
+
+      bool move_forward = (exp < 0);
+      for (int i = 0; i < abs(exp); ++i)
+        number = move_decimal(number, move_forward);
+
+      str = number;
+
+      if (str.find('.') == 0)
+        str = "0" + str;
+    }
+  }
+
   std::regex reg(R"(^\s*(-?|\+?)([0-9]+)(?:\.([0-9]+)|\.)?\s*$)");
   std::smatch m;
   if (!std::regex_match(str, m, reg))

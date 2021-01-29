@@ -31,7 +31,7 @@ class PriceSource {
     return Instance().DoGetURL(url);
   }
 
-  static void AddAllCoins(File* file);
+  static void AddAllCoins(File* file, bool unique_symbol = false);
 
   static Amount GetFee(std::shared_ptr<const Coin> coin, std::string txn);
 

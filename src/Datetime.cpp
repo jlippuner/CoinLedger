@@ -93,7 +93,7 @@ int64_t Datetime::DailyDataDayFromStr(std::string str) {
 
 int Datetime::GetMonth(const char* str) {
   std::string month_str(str);
-  if ((month_str == "Jan") || (month_str == "Janunary")) return 1;
+  if ((month_str == "Jan") || (month_str == "January")) return 1;
   if ((month_str == "Feb") || (month_str == "February")) return 2;
   if ((month_str == "Mar") || (month_str == "March")) return 3;
   if ((month_str == "Apr") || (month_str == "April")) return 4;
