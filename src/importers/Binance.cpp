@@ -11,169 +11,129 @@
 #include <regex>
 
 #include "CSV.hpp"
+#include "Split.hpp"
 
-void Binance::ImportTrades(const std::string& import_file, File* file,
-    std::shared_ptr<Account> account, std::shared_ptr<Account> fee_account) {
-  // read the CSV file
-  CSV csv(import_file);
-
-  std::vector<std::string> expected_header{"Date(UTC)", "Market", "Type",
-      "Price", "Amount", "Total", "Fee", "Fee Coin"};
-  if (csv.Header() != expected_header)
-    throw std::invalid_argument(
-        "CSV file '" + import_file + "' has an unexpected header");
-
-  size_t num_duplicate = 0;
-  size_t num_imported = 0;
-
-  for (auto& rec : csv.Content()) {
-    auto time = Datetime::FromUTC(rec[0]);
-    auto market = rec[1];
-    auto type = rec[2];
-    auto quote_amt = Amount::Parse(rec[4]);
-    auto base_amt = Amount::Parse(rec[5]);
-    auto fee = Amount::Parse(rec[6]);
-    auto fee_coin_str = rec[7];
-
-    // Binance does not provide a unique identifier, just store the entire line
-    // and hope there are no completely identical trades
-    std::string tx_id = "Binance_" + time.ToStrLocalFile() + "_" + rec[1] +
-                        "_" + rec[2] + "_" + rec[3] + "_" + rec[4] + "_" +
-                        rec[5] + "_" + rec[6] + "_" + rec[7];
-    std::string tx_description = "Binance trade " + market;
-
-    if (type == "SELL") {
-      quote_amt = -quote_amt;
-    } else if (type == "BUY") {
-      base_amt = -base_amt;
-    } else {
-      throw std::runtime_error("Unknown Binance type '" + type + "'");
-    }
-
-    // get quote and base currencies, valid bases are BTC, ETH, BNB, USDT, USDC
-    std::regex reg(
-        R"(^([0-9A-Z]+)(BTC|ETH|BNB|USDT|USDC|TRX|XRP|BUSD|TUSD|PAX|EUR|BKRW|IDRT|NGN|RUB|TRY|ZAR)$)");
-    std::smatch m;
-    if (!std::regex_match(market, m, reg))
-      throw std::invalid_argument(
-          "Can't parse Binance market '" + market + "'");
-
-    auto quote = file->GetCoinBySymbol(m[1].str());
-    auto base = file->GetCoinBySymbol(m[2].str());
-
-    if ((base == nullptr) || (quote == nullptr))
-      throw std::invalid_argument(
-          "Unknown coins in Binance exchange '" + market + "'");
-
-    auto fee_coin = file->GetCoinBySymbol(fee_coin_str);
-    if (fee_coin == nullptr)
-      throw std::invalid_argument(
-          "Unknown Binance fee coin '" + fee_coin_str + "'");
-
-    // check if a transaction with this import_id already exists
-    if (file->TransactionsByImportId().count(tx_id) > 0) {
-      // transaction already exists, skip this since the Binance file contains
-      // one transaction at a time
-      ++num_duplicate;
-      continue;
-    }
-
-    // we will create 4 splits
-    std::vector<ProtoSplit> splits;
-
-    // main split pair of the trade
-    splits.push_back(ProtoSplit(account, "", base_amt, base, ""));
-    splits.push_back(ProtoSplit(account, "", quote_amt, quote, ""));
-
-    // the fee split pair
-    if (fee != 0) {
-      splits.push_back(ProtoSplit(account, "", -fee, fee_coin, ""));
-      splits.push_back(ProtoSplit(fee_account, "", fee, fee_coin, ""));
-    }
-
-    Transaction::Create(file, time, tx_description, splits, tx_id);
-    ++num_imported;
-  }
-
-  printf("Imported %lu records and skipped %lu duplicates from %s\n",
-      num_imported, num_duplicate, import_file.c_str());
-}
-
-void Binance::ImportDepositsOrWithdrawals(bool deposits,
-    const std::string& import_file, File* file,
-    std::shared_ptr<Account> account, std::shared_ptr<Account> fee_account,
+void Binance::Import(const std::string& import_file, File* file,
     const std::map<std::string, std::string>& transaction_associations) {
-  if (deposits) {
-    assert(fee_account == nullptr);
-  } else {
-    assert(fee_account != nullptr);
-  }
+  // get accounts
+  auto earn = file->GetAccount("Assets::Exchanges::Binance::Earn");
+  auto trade_fee = file->GetAccount("Expenses::Trading Fees::Binance");
+  auto txn_fee =
+      file->GetAccount("Expenses::Transaction Fees::Binance Withdrawals");
+  auto interest = file->GetAccount("Income::Other Income::Interest::Binance");
+  auto pnl = file->GetAccount("Income::Trading P/L::Binance P/L");
+  auto airdrop = file->GetAccount("Income::Other Income::Airdrop");
+  auto loan = file->GetAccount("Liabilities::Binance Loan");
+
+  std::map<std::string, std::shared_ptr<Account>> accnts;
+  accnts.insert({"Spot", file->GetAccount("Assets::Exchanges::Binance::Spot")});
+  accnts.insert({"USDT-Futures",
+      file->GetAccount("Assets::Exchanges::Binance::USDT Futures")});
 
   // read the CSV file
   CSV csv(import_file);
 
-  std::vector<std::string> expected_header{"Date(UTC)", "Coin", "Amount",
-      "TransactionFee", "Address", "TXID", "SourceAddress", "PaymentID",
-      "Status"};
+  std::vector<std::string> expected_header{
+      "UTC_Time", "Account", "Operation", "Coin", "Change", "Remark"};
   if (csv.Header() != expected_header)
     throw std::invalid_argument(
         "CSV file '" + import_file + "' has an unexpected header");
 
-  size_t num_duplicate = 0;
+  size_t num_possible_duplicate = 0;
   size_t num_imported = 0;
 
+  std::string last_accnt = "";
+  bool last_was_loan = false;
+
   for (auto& rec : csv.Content()) {
-    auto time = Datetime::FromUTC(rec[0]);
-    auto coin_str = rec[1];
+    auto time_str = rec[0];
+    auto time = Datetime::FromUTC(time_str);
+    auto accnt = rec[1];
+    auto op = rec[2];
+    auto coin_str = rec[3];
     auto coin = file->GetCoinBySymbol(coin_str);
-    auto amount = Amount::Parse(rec[2]);
-    auto txfee = Amount::Parse(rec[3]);
-    auto txid = rec[5];
-    auto status = rec[8];
+    auto change = Amount::Parse(rec[4]);
 
-    if (deposits && (txfee != 0))
-      throw std::invalid_argument(
-          "Cannot handle non-zero Binance deposit transaction fee");
+    bool is_loan = (op == "Cross Collateral Transfer");
 
-    if (status != "Completed") continue;
+    // Binance does not provice transaction IDs, so we use the timestamp to
+    // construct the ID, which allows us to correctly match splits that belong
+    // to the same transaction
+    std::regex reg(R"([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})");
+    if (!std::regex_match(time_str, reg))
+      throw std::invalid_argument(time_str + " is not a valid datetime");
 
-    if (coin == nullptr)
-      throw std::invalid_argument("Unknown coin '" + coin_str + "'");
+    time_str[10] = '_';
+    std::string tx_id = "Binance_" + time_str;
 
-    if (!deposits) {
-      // withdrawn amount does not include fee
-      amount = -(amount + txfee);
+    if (transaction_associations.count(tx_id) > 0) {
+      tx_id = transaction_associations.at(tx_id);
     }
 
-    std::string tx_id = coin_str + "_" + txid;
-    if (transaction_associations.count(txid) > 0) {
-      tx_id = transaction_associations.at(txid);
-    }
+    std::string split_id =
+        tx_id + "_" + accnt + "_" + op + "_" + coin_str + "_" + rec[4];
 
-    std::string type = deposits ? "deposit" : "withdrawal";
-    std::string split_id = "Binance_" + type + "_" + tx_id;
-    std::string tx_description = "Binance " + coin_str + " " + type;
+    std::string tx_description = "Binance " + coin_str + " " + op;
+    if ((accnt == "Spot") && ((op == "Buy") || (op == "Sell") || (op == "Fee")))
+      tx_description = "Binance Spot trade";
 
     // check if a transaction with this import_id already exists
     auto txn = file->GetTransactionFromImportId(tx_id);
 
     // if a transaction with this import id already exists, check if it has a
-    // split with this split id, in which case we don't need to duplicate this
-    // split
+    // split with this split id
     if ((txn != nullptr) && (txn->HasSplitWithImportId(split_id))) {
-      ++num_duplicate;
-      continue;
+      // it is possible that we legitimately get the same split, so just warn
+      // here
+      printf("WARNING: Possible duplicate: %s\n", split_id.c_str());
+      ++num_possible_duplicate;
     }
 
     // we will create one or two splits, depending on the type of record
     std::vector<ProtoSplit> splits;
+    auto account = accnts.at(accnt);
 
-    // create a new split for this deposit
-    splits.push_back(ProtoSplit(account, "", amount, coin, split_id));
+    // create a new split(s) for this deposit
+    ProtoSplit* fee_split = nullptr;
+    bool is_trade = false;
 
-    if (!deposits && (txfee != 0)) {
+    splits.push_back(ProtoSplit(account, "", change, coin, split_id));
+
+    if (op == "Fee") {
+      fee_split = &splits[0];
+    } else if ((op == "Buy") || (op == "Sell") ||
+               (op == "Realize profit and loss")) {
+      is_trade = true;
+      if (op == "Realize profit and loss")
+        splits.push_back(ProtoSplit(pnl, "", -change, coin, split_id));
+    } else if ((op == "Savings purchase") ||
+               (op == "Savings Principal redemption")) {
+      splits.push_back(ProtoSplit(earn, "", -change, coin, split_id + "_earn"));
+    } else if (op == "Savings Interest") {
       splits.push_back(
-          ProtoSplit(fee_account, "", txfee, coin, split_id + "_fee"));
+          ProtoSplit(interest, "", -change, coin, split_id + "_interest"));
+    } else if (op == "Distribution") {
+      // this could be airdrop or move to futures collateral
+      if (last_was_loan) {
+        // assume this is collateral
+        splits.push_back(ProtoSplit(accnts.at(last_accnt), "", -change, coin,
+            split_id + "_collateral"));
+      } else {
+        // assume airdrop
+        splits.push_back(ProtoSplit(airdrop, "", -change, coin, split_id));
+      }
+    } else if ((op == "transfer_in") || (op == "transfer_out")) {
+      // nothing to do
+    } else if (op == "Cross Collateral Transfer") {
+      splits.push_back(ProtoSplit(loan, "", -change, coin, split_id + "_loan"));
+    } else {
+      throw std::invalid_argument("Unknown operation " + op);
+    }
+
+    if (fee_split != nullptr) {
+      splits.push_back(
+          ProtoSplit(is_trade ? trade_fee : txn_fee, "", -fee_split->amount_,
+              fee_split->coin_, fee_split->import_id_ + "_fee"));
     }
 
     if (txn == nullptr) {
@@ -187,8 +147,10 @@ void Binance::ImportDepositsOrWithdrawals(bool deposits,
       }
     }
     ++num_imported;
+    last_was_loan = is_loan;
+    last_accnt = accnt;
   }
 
-  printf("Imported %lu records and skipped %lu duplicates from %s\n",
-      num_imported, num_duplicate, import_file.c_str());
+  printf("Imported %lu records and got %lu POSSIBLE duplicates from %s\n",
+      num_imported, num_possible_duplicate, import_file.c_str());
 }

@@ -43,6 +43,12 @@ void CelsiusWallet::Import(const std::string& import_file, File* file,
     auto coin_str = rec[3];
     auto coin = file->GetCoinBySymbol(coin_str);
     auto amount = Amount::Parse(rec[4]);
+    auto confirmed = rec[8];
+
+    if (confirmed != "yes") {
+      printf("Skip unconfirmed transaction\n");
+      continue;
+    }
 
     std::string tx_id = "Celsius_" + id;
     if (transaction_associations.count(id) > 0) {

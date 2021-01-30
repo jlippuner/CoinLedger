@@ -59,7 +59,7 @@ class File {
 
   UUIDMap<Balance> MakeAccountBalances() const;
 
-  void PrintAccountBalances() const;
+  void PrintAccountBalances(bool fetch_usd_prices = true) const;
 
   Amount GetHistoricUSDPrice(
       Datetime time, std::shared_ptr<const Coin> coin) const;

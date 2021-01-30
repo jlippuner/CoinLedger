@@ -532,7 +532,8 @@ void File::Save(const std::string& path) const {
     // write price data
     for (auto& itm : daily_data_) {
       sqlite3_stmt* stmt = nullptr;
-      std::string sql = "INSERT INTO [" + itm.first + "_daily_data] VALUES (?);";
+      std::string sql =
+          "INSERT INTO [" + itm.first + "_daily_data] VALUES (?);";
 
       SQL3(db, sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr));
 
@@ -610,7 +611,8 @@ void File::BalanceTransaction(
   auto txn = GetTransactionFromImportId(txn_import_id);
 
   if (!txn) {
-    throw std::invalid_argument("No transaction with this id: " + txn_import_id);
+    throw std::invalid_argument(
+        "No transaction with this id: " + txn_import_id);
   }
 
   if (txn->Balanced())
@@ -671,9 +673,16 @@ UUIDMap<Balance> File::MakeAccountBalances() const {
   return balances;
 }
 
-void File::PrintAccountBalances() const {
+void File::PrintAccountBalances(bool fetch_usd_prices) const {
   auto balances = MakeAccountBalances();
-  auto prices = PriceSource::GetUSDPrices();
+
+  std::unordered_map<std::string, Amount> prices;
+
+  if (fetch_usd_prices) {
+    prices = PriceSource::GetUSDPrices();
+  } else {
+    for (const auto& c : coins_) prices.insert({c.second->Id(), Amount(0)});
+  }
 
   GetAccount("Assets")->PrintTreeBalance(balances, "", false, &prices);
   GetAccount("Equity")->PrintTreeBalance(balances, "", true, &prices);
@@ -693,9 +702,9 @@ Amount File::GetHistoricUSDPrice(
 void File::PrintTransactions(std::vector<std::shared_ptr<Transaction>> txns,
     bool print_import_id) const {
   // sort transaction by account full name
-  std::sort(
-      txns.begin(), txns.end(), [](const std::shared_ptr<Transaction>& a,
-                                    const std::shared_ptr<Transaction>& b) {
+  std::sort(txns.begin(), txns.end(),
+      [](const std::shared_ptr<Transaction>& a,
+          const std::shared_ptr<Transaction>& b) {
         return a->Date() < b->Date();
       });
 
