@@ -45,7 +45,7 @@ void CelsiusWallet::Import(const std::string& import_file, File* file,
     auto amount = Amount::Parse(rec[4]);
     auto confirmed = rec[8];
 
-    if (confirmed != "yes") {
+    if (confirmed != "Yes") {
       printf("Skip unconfirmed transaction\n");
       continue;
     }

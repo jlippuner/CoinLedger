@@ -99,7 +99,10 @@ void Binance::Import(const std::string& import_file, File* file,
 
     splits.push_back(ProtoSplit(account, "", change, coin, split_id));
 
-    if (op == "Fee") {
+    if ((op == "transfer_in") || (op == "transfer_out") || (op == "Deposit") ||
+        (op == "Large OTC trading")) {
+      // nothing to do
+    } else if (op == "Fee") {
       fee_split = &splits[0];
     } else if ((op == "Buy") || (op == "Sell") ||
                (op == "Realize profit and loss")) {
@@ -112,6 +115,11 @@ void Binance::Import(const std::string& import_file, File* file,
     } else if (op == "Savings Interest") {
       splits.push_back(
           ProtoSplit(interest, "", -change, coin, split_id + "_interest"));
+    } else if (op == "Savings Interest MANUAL ADJUSTMENT") {
+      splits.clear();
+      splits.push_back(ProtoSplit(earn, "", change, coin, split_id));
+      splits.push_back(
+          ProtoSplit(interest, "", -change, coin, split_id + "_interest"));
     } else if (op == "Distribution") {
       // this could be airdrop or move to futures collateral
       if (last_was_loan) {
@@ -122,8 +130,6 @@ void Binance::Import(const std::string& import_file, File* file,
         // assume airdrop
         splits.push_back(ProtoSplit(airdrop, "", -change, coin, split_id));
       }
-    } else if ((op == "transfer_in") || (op == "transfer_out")) {
-      // nothing to do
     } else if (op == "Cross Collateral Transfer") {
       splits.push_back(ProtoSplit(loan, "", -change, coin, split_id + "_loan"));
     } else {
