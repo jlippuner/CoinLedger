@@ -66,6 +66,8 @@ class File {
 
   void AddNewCoins() { PriceSource::AddAllCoins(this, true); }
 
+  void AddCoinNumIds();
+
   std::shared_ptr<Coin> AddCoin(const Coin& coin) {
     auto res =
         coins_.emplace(coin.Id(), std::make_shared<Coin>(coin)).first->second;

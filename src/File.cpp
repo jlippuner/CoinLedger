@@ -332,7 +332,7 @@ void File::Save(const std::string& path) const {
     sqlite3_stmt* stmt = nullptr;
     const char* sql = R"(
         INSERT INTO coins
-        VALUES (?, ?, ?, P);
+        VALUES (?, ?, ?, ?);
       )";
 
     SQL3(db, sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr));
@@ -350,7 +350,7 @@ void File::Save(const std::string& path) const {
       SQL3(db, sqlite3_bind_str(stmt, 1, c->Id()));
       SQL3(db, sqlite3_bind_str(stmt, 2, c->Name()));
       SQL3(db, sqlite3_bind_str(stmt, 3, c->Symbol()));
-      SQL3(db, sqlite3_bind_int(stmt, 3, c->NumId()));
+      SQL3(db, sqlite3_bind_int(stmt, 4, c->NumId()));
 
       // execute the statement
       int res = sqlite3_step(stmt);
@@ -702,6 +702,14 @@ Amount File::GetHistoricUSDPrice(
   if (daily_data_.count(coin->Id()) == 0)
     daily_data_.insert({{coin->Id(), DailyData(coin)}});
   return daily_data_.at(coin->Id())(time);
+}
+
+void File::AddCoinNumIds() {
+  auto num_ids = PriceSource::GetNumIds();
+  for (auto& c : coins_) {
+    auto id = c.second->Id();
+    c.second->SetNumId(num_ids.count(id) > 0 ? num_ids.at(id) : 0);
+  }
 }
 
 void File::PrintTransactions(std::vector<std::shared_ptr<Transaction>> txns,

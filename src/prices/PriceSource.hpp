@@ -37,6 +37,8 @@ class PriceSource {
 
   static std::unordered_map<std::string, Amount> GetUSDPrices();
 
+  static std::unordered_map<std::string, int> GetNumIds();
+
  private:
   PriceSource() { curlpp::initialize(); }
 

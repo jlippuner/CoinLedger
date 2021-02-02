@@ -74,7 +74,7 @@ class Taxes {
       Accnt ecr20_account, Accnt exchanges, Accnt equity, Accnt expenses,
       Accnt expense_mining_fees, Accnt expense_trading_fees,
       Accnt expense_transaction_fees, Accnt income_other, Accnt income_mining,
-      Accnt income_trade);
+      Accnt income_trade, const std::vector<std::string> &ignore_txns);
 
   // print events after from datetime
   void PrintEvents(const File& file, EventType type, Datetime from) const;

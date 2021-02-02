@@ -157,3 +157,35 @@ std::unordered_map<std::string, Amount> PriceSource::GetUSDPrices() {
 
   return prices;
 }
+
+std::unordered_map<std::string, int> PriceSource::GetNumIds() {
+  auto coin_list_url = GetCoinMarketCapURL();
+  auto json = PriceSource::GetURL(coin_list_url);
+  std::stringstream ss;
+  ss.str(json);
+
+  Json::CharReaderBuilder rbuilder;
+  rbuilder["collectComments"] = false;
+  Json::Value root;
+  std::string parse_errors;
+  if (!Json::parseFromStream(rbuilder, ss, &root, &parse_errors))
+    throw std::runtime_error(
+        "Could not parse result from " + coin_list_url + ": " + parse_errors);
+
+  std::unordered_map<std::string, int> num_ids;
+  num_ids[Coin::USD_id()] = -1;
+
+  for (auto& c : root["data"]) num_ids[c["slug"].asString()] = c["id"].asInt();
+
+  // hacks for old currencies or ids
+  num_ids["modum"] = 0;
+  num_ids["vivo"] = 0;
+  num_ids["segwit2x"] = 0;
+  num_ids["viuly"] = 0;
+  num_ids["xenon"] = 0;
+  num_ids["omisego"] = 0;
+
+  num_ids["ripple"] = num_ids["xrp"];
+
+  return num_ids;
+}

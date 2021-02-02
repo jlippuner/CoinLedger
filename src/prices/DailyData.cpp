@@ -119,62 +119,43 @@ Amount DailyData::operator()(const Datetime& date) {
 
 std::pair<std::vector<int64_t>, std::vector<Amount>> DailyData::GetData(
     int64_t from, int64_t to) const {
-  if (to < from) throw std::invalid_argument("to must be larger than from");
+  if (coin_->NumId() <= 0)
+    throw std::invalid_argument("Can't get daily data for " + coin_->Id() +
+                                " because it doesn't have a num_id");
 
-  auto from_str = Datetime::ToStrDailyData(from);
-  auto to_str = Datetime::ToStrDailyData(to);
-  // https://coinmarketcap.com/currencies/verge/historical-data/?start=20170701&end=20170802
-  std::string url = "https://coinmarketcap.com/currencies/" + coin_->Id() +
-                    "/historical-data/?start=" + from_str + "&end=" + to_str;
+  if (to < from) throw std::invalid_argument("to must be larger than from");
+  std::string url =
+      "https://web-api.coinmarketcap.com/v1/cryptocurrency/ohlcv/historical?";
+  url += "id=" + std::to_string(coin_->NumId());
+  url +=
+      "&convert=USD&time_start=" + std::to_string(from * 24 * 3600 - 12 * 3600);
+  url += "&time_end=" + std::to_string(to * 24 * 3600 + 12 * 3600);
 
   printf("fetching %s\n", url.c_str());
-  auto res = PriceSource::GetURL(url);
+  auto json = PriceSource::GetURL(url);
+  std::stringstream ss;
+  ss.str(json);
 
   try {
-    using namespace htmlcxx::HTML;
-    ParserDom parser;
-    auto tree = parser.parseTree(res);
-
-    // get the content of <script id="__NEXT_DATA__">
-    auto itr = tree.begin();
-    bool found = false;
-    for (; itr != tree.end(); ++itr) {
-      if (itr->tagName() == "script") {
-        itr->parseAttributes();
-        auto id = itr->attribute("id");
-        if (id.first && (id.second == "__NEXT_DATA__")) {
-          found = true;
-          break;
-        }
-      }
-    }
-    if (!found) throw std::runtime_error("Could not find __NEXT_DATA__");
-
-    auto json = tree.begin(itr)->text();
-    Json::Reader reader;
+    Json::CharReaderBuilder rbuilder;
+    rbuilder["collectComments"] = false;
     Json::Value root;
-    if (!reader.parse(json, root))
+    std::string parse_errors;
+
+    if (!Json::parseFromStream(rbuilder, ss, &root, &parse_errors))
+      throw std::runtime_error("Could not parse __NEXT_DATA__ JSON from " +
+                               url + ": " + parse_errors);
+    auto data = root["data"];
+    if (data["symbol"].asString() != coin_->Symbol())
       throw std::runtime_error(
-          "Could not parse __NEXT_DATA__ JSON from " + url);
-
-    auto hist_root =
-        root["props"]["initialState"]["cryptocurrency"]["ohlcvHistorical"];
-
-    if (hist_root.size() != 1)
-      throw std::runtime_error("Expected just one element but got " +
-                               std::to_string(hist_root.size()));
-
-    auto hist = *hist_root.begin();
-    if (hist["symbol"].asString() != coin_->Symbol())
-      throw std::runtime_error(
-          "Historic data symbol mismatch: " + hist["symbol"].asString() +
+          "Historic data symbol mismatch: " + data["symbol"].asString() +
           " != " + coin_->Symbol());
 
     // read the table
     std::vector<int64_t> days;
     std::vector<Amount> prices;
     {
-      for (const auto& q : hist["quotes"]) {
+      for (const auto& q : data["quotes"]) {
         std::string time_str = q["quote"]["USD"]["timestamp"].asString();
         std::string close_str = q["quote"]["USD"]["close"].asString();
 
