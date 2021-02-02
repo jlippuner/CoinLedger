@@ -20,28 +20,34 @@ void ETHECR20Account::Import(const std::string& eth_account, File* file,
     const std::map<std::string, std::string>& transaction_associations) {
   if (account->SingleCoin()) {
     throw std::invalid_argument(
-        "An Ethereum ECR20 account can only be imported into a multi-coin account");
+        "An Ethereum ECR20 account can only be imported into a multi-coin "
+        "account");
   }
   // retrieve the transactions for this account
   std::string url =
       "http://api.etherscan.io/api?module=account&action=tokentx&address=" +
       eth_account;
 
-  Json::Reader reader;
+  Json::CharReaderBuilder rbuilder;
+  rbuilder["collectComments"] = false;
   Json::Value root;
+  std::string parse_errors;
   while (true) {
     try {
       auto json = PriceSource::GetURL(url);
+      std::stringstream ss;
+      ss.str(json);
 
-      if (!reader.parse(json, root))
-        throw std::runtime_error("Could not parse result from " + url);
+      if (!Json::parseFromStream(rbuilder, ss, &root, &parse_errors))
+        throw std::runtime_error(
+            "Could not parse result from " + url + ": " + parse_errors);
 
       if ((root["status"].asString() != "1") &&
           (root["message"].asString() != "OK"))
         throw std::runtime_error("API request failed, url = " + url);
 
       break;
-    } catch (std::exception &e) {
+    } catch (std::exception& e) {
       printf("Accessing etherscan failed, retrying in 5 seconds...\n");
       std::this_thread::sleep_for(std::chrono::seconds(5));
     }
@@ -126,7 +132,8 @@ void ETHECR20Account::Import(const std::string& eth_account, File* file,
       if (fee > 0) {
         splits.push_back(ProtoSplit(fee_account, "", fee, eth_coin, split_id));
         splits.push_back(ProtoSplit(account, "", amount, coin, split_id));
-        splits.push_back(ProtoSplit(eth_account_for_fee, "", -fee, eth_coin, split_id));
+        splits.push_back(
+            ProtoSplit(eth_account_for_fee, "", -fee, eth_coin, split_id));
       } else if (fee == 0) {
         splits.push_back(ProtoSplit(account, "", amount, coin, split_id));
       } else if (fee < 0) {
@@ -153,6 +160,7 @@ void ETHECR20Account::Import(const std::string& eth_account, File* file,
   }
 
   printf(
-      "Imported %lu records and skipped %lu duplicates from ETH ECR20 account %s\n",
+      "Imported %lu records and skipped %lu duplicates from ETH ECR20 account "
+      "%s\n",
       num_imported, num_duplicate, eth_account.c_str());
 }

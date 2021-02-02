@@ -94,19 +94,16 @@ void Binance::Import(const std::string& import_file, File* file,
     auto account = accnts.at(accnt);
 
     // create a new split(s) for this deposit
-    ProtoSplit* fee_split = nullptr;
-    bool is_trade = false;
-
     splits.push_back(ProtoSplit(account, "", change, coin, split_id));
 
-    if ((op == "transfer_in") || (op == "transfer_out") || (op == "Deposit") ||
+    if ((op == "Buy") || (op == "Sell") || (op == "Deposit") ||
+        (op == "transfer_in") || (op == "transfer_out") ||
         (op == "Large OTC trading")) {
       // nothing to do
     } else if (op == "Fee") {
-      fee_split = &splits[0];
-    } else if ((op == "Buy") || (op == "Sell") ||
-               (op == "Realize profit and loss")) {
-      is_trade = true;
+      splits.push_back(
+          ProtoSplit(trade_fee, "", -change, coin, split_id + "_fee"));
+    } else if (op == "Realize profit and loss") {
       if (op == "Realize profit and loss")
         splits.push_back(ProtoSplit(pnl, "", -change, coin, split_id));
     } else if ((op == "Savings purchase") ||
@@ -134,12 +131,6 @@ void Binance::Import(const std::string& import_file, File* file,
       splits.push_back(ProtoSplit(loan, "", -change, coin, split_id + "_loan"));
     } else {
       throw std::invalid_argument("Unknown operation " + op);
-    }
-
-    if (fee_split != nullptr) {
-      splits.push_back(
-          ProtoSplit(is_trade ? trade_fee : txn_fee, "", -fee_split->amount_,
-              fee_split->coin_, fee_split->import_id_ + "_fee"));
     }
 
     if (txn == nullptr) {

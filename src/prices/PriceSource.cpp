@@ -10,20 +10,24 @@
 #include "File.hpp"
 
 std::string PriceSource::GetCoinMarketCapURL() {
-  std::string url =
-      "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest";
-  url += "?start=1&limit=5000&convert=USD";
-  url += "&CMC_PRO_API_KEY=";
+  // std::string url =
+  //     "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest";
+  // url += "?start=1&limit=5000&convert=USD";
+  // url += "&CMC_PRO_API_KEY=";
 
-  auto key = std::getenv("COINMARKETCAP_API_KEY");
-  if (key == nullptr) {
-    printf(
-        "ERROR: No CoinMarketCap.com API key found. Please set the "
-        "COINMARKETCAP_API_KEY environment variable.\n");
-    exit(EXIT_FAILURE);
-  }
-  url += std::string(key);
-  // printf("URL = %s\n", url.c_str());
+  // auto key = std::getenv("COINMARKETCAP_API_KEY");
+  // if (key == nullptr) {
+  //   printf(
+  //       "ERROR: No CoinMarketCap.com API key found. Please set the "
+  //       "COINMARKETCAP_API_KEY environment variable.\n");
+  //   exit(EXIT_FAILURE);
+  // }
+  // url += std::string(key);
+  // // printf("URL = %s\n", url.c_str());
+
+  std::string url =
+      "https://web-api.coinmarketcap.com/v1/cryptocurrency/listings/latest";
+  url += "?start=1&limit=5000&convert=USD";
 
   return url;
 }
@@ -52,17 +56,24 @@ std::string PriceSource::DoGetURL(std::string url) const {
 void PriceSource::AddAllCoins(File* file, bool unique_symbol) {
   auto coin_list_url = GetCoinMarketCapURL();
   auto json = PriceSource::GetURL(coin_list_url);
+  std::stringstream ss;
+  ss.str(json);
 
-  Json::Reader reader;
+  Json::CharReaderBuilder rbuilder;
+  rbuilder["collectComments"] = false;
   Json::Value root;
-  if (!reader.parse(json, root))
-    throw std::runtime_error("Could not parse result from " + coin_list_url);
+  std::string parse_errors;
+
+  if (!Json::parseFromStream(rbuilder, ss, &root, &parse_errors))
+    throw std::runtime_error(
+        "Could not parse result from " + coin_list_url + ": " + parse_errors);
 
   for (auto& c : root["data"]) {
     auto symbol = c["symbol"].asString();
     if (unique_symbol && (file->CoinBySymbol().count(symbol) > 0)) continue;
 
-    Coin::Create(file, c["slug"].asString(), c["name"].asString(), symbol);
+    Coin::Create(file, c["slug"].asString(), c["name"].asString(), symbol,
+        c["id"].asInt());
   }
 }
 
@@ -74,12 +85,19 @@ Amount PriceSource::GetFee(std::shared_ptr<const Coin> coin, std::string txn) {
     std::string url =
         "https://sochain.com/api/v2/tx/" + coin->Symbol() + "/" + txn;
     auto json = PriceSource::GetURL(url);
+    std::stringstream ss;
+    ss.str(json);
 
-    Json::Reader reader;
+    Json::CharReaderBuilder rbuilder;
+    rbuilder["collectComments"] = false;
     Json::Value root;
-    while (!reader.parse(json, root)) {
-      printf("WARNING: Could not parse result from %s, trying again in 5 sec\n",
-          url.c_str());
+    std::string parse_errors;
+
+    while (!Json::parseFromStream(rbuilder, ss, &root, &parse_errors)) {
+      printf(
+          "WARNING: Could not parse result from %s, trying again in 5 sec "
+          "(error %s)\n",
+          url.c_str(), parse_errors.c_str());
       printf("res: %s\n", json.c_str());
 
       std::this_thread::sleep_for(std::chrono::seconds(5));
@@ -101,11 +119,16 @@ Amount PriceSource::GetFee(std::shared_ptr<const Coin> coin, std::string txn) {
 std::unordered_map<std::string, Amount> PriceSource::GetUSDPrices() {
   auto coin_list_url = GetCoinMarketCapURL();
   auto json = PriceSource::GetURL(coin_list_url);
+  std::stringstream ss;
+  ss.str(json);
 
-  Json::Reader reader;
+  Json::CharReaderBuilder rbuilder;
+  rbuilder["collectComments"] = false;
   Json::Value root;
-  if (!reader.parse(json, root))
-    throw std::runtime_error("Could not parse result from " + coin_list_url);
+  std::string parse_errors;
+  if (!Json::parseFromStream(rbuilder, ss, &root, &parse_errors))
+    throw std::runtime_error(
+        "Could not parse result from " + coin_list_url + ": " + parse_errors);
 
   std::unordered_map<std::string, Amount> prices;
   prices[Coin::USD_id()] = 1;

@@ -30,21 +30,26 @@ void ETHAccount::Import(const std::string& eth_account, File* file,
       "http://api.etherscan.io/api?module=account&action=txlist&address=" +
       eth_account;
 
-  Json::Reader reader;
+  Json::CharReaderBuilder rbuilder;
+  rbuilder["collectComments"] = false;
   Json::Value root;
+  std::string parse_errors;
   while (true) {
     try {
       auto json = PriceSource::GetURL(url);
+      std::stringstream ss;
+      ss.str(json);
 
-      if (!reader.parse(json, root))
-        throw std::runtime_error("Could not parse result from " + url);
+      if (!Json::parseFromStream(rbuilder, ss, &root, &parse_errors))
+        throw std::runtime_error(
+            "Could not parse result from " + url + ": " + parse_errors);
 
       if ((root["status"].asString() != "1") &&
           (root["message"].asString() != "OK"))
         throw std::runtime_error("API request failed, url = " + url);
 
       break;
-    } catch (std::exception &e) {
+    } catch (std::exception& e) {
       printf("Accessing etherscan failed, retrying in 5 seconds...\n");
       std::this_thread::sleep_for(std::chrono::seconds(5));
     }

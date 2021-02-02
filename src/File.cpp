@@ -60,7 +60,7 @@ File File::InitNewFile() {
   Account::Create(&file, "Equity", true, nullptr, false);
 
   // add all known coins
-  Coin::Create(&file, Coin::USD_id(), "US Dollar", "USD");
+  Coin::Create(&file, Coin::USD_id(), "US Dollar", "USD", -1);
   PriceSource::AddAllCoins(&file);
 
   return file;
@@ -85,13 +85,16 @@ File File::Open(const std::string& path) {
         db, sqlite3_prepare_v2(db, "SELECT * FROM coins;", -1, &stmt, nullptr));
 
     int res = sqlite3_step(stmt);
+    bool have_num_id = (sqlite3_column_count(stmt) == 4);
     while (res == SQLITE_ROW) {
       std::string id = sqlite3_column_str(stmt, 0);
       std::string name = sqlite3_column_str(stmt, 1);
       std::string symbol = sqlite3_column_str(stmt, 2);
+      int num_id = have_num_id ? sqlite3_column_int(stmt, 3) : 0;
 
       auto c = file.coins_
-                   .emplace(id, std::make_shared<Coin>(Coin(id, name, symbol)))
+                   .emplace(id,
+                       std::make_shared<Coin>(Coin(id, name, symbol, num_id)))
                    .first->second;
       file.coin_by_symbol_.insert({{c->Symbol(), c}});
 
@@ -281,7 +284,8 @@ void File::Save(const std::string& path) const {
         CREATE TABLE coins (
           id          TEXT PRIMARY KEY,
           name        TEXT,
-          symbol      TEXT
+          symbol      TEXT,
+          num_id      INT(4)
         ) WITHOUT ROWID;
       )",
         nullptr, nullptr);
@@ -328,7 +332,7 @@ void File::Save(const std::string& path) const {
     sqlite3_stmt* stmt = nullptr;
     const char* sql = R"(
         INSERT INTO coins
-        VALUES (?, ?, ?);
+        VALUES (?, ?, ?, P);
       )";
 
     SQL3(db, sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr));
@@ -346,6 +350,7 @@ void File::Save(const std::string& path) const {
       SQL3(db, sqlite3_bind_str(stmt, 1, c->Id()));
       SQL3(db, sqlite3_bind_str(stmt, 2, c->Name()));
       SQL3(db, sqlite3_bind_str(stmt, 3, c->Symbol()));
+      SQL3(db, sqlite3_bind_int(stmt, 3, c->NumId()));
 
       // execute the statement
       int res = sqlite3_step(stmt);

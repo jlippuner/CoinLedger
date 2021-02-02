@@ -28,11 +28,16 @@ void XRPAccount::Import(const std::string& xrp_account, File* file,
   std::string url = "https://data.ripple.com/v2/accounts/" + xrp_account +
                     "/transactions?limit=1000";
   auto json = PriceSource::GetURL(url);
+  std::stringstream ss;
+  ss.str(json);
 
-  Json::Reader reader;
+  Json::CharReaderBuilder rbuilder;
+  rbuilder["collectComments"] = false;
   Json::Value root;
-  if (!reader.parse(json, root))
-    throw std::runtime_error("Could not parse result from " + url);
+  std::string parse_errors;
+  if (!Json::parseFromStream(rbuilder, ss, &root, &parse_errors))
+    throw std::runtime_error(
+        "Could not parse result from " + url + ": " + parse_errors);
 
   if (root["result"].asString() != "success")
     throw std::runtime_error("API request failed, url = " + url);
