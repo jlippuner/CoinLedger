@@ -1,4 +1,5 @@
 #include "Inventory.hpp"
+#include "Datetime.hpp"
 
 void Inventory::Acquire(InventoryItem item) {
   if ((basis_.size() > 0) && (item.date < basis_.back().date))
@@ -44,12 +45,18 @@ std::vector<InventoryItem> Inventory::Dispose(Amount amount) {
   return consumed;
 }
 
-std::pair<Amount, Amount> Inventory::Unsold() const {
-  std::pair<Amount, Amount> res{0, 0};
+UnsoldInventory Inventory::Unsold(size_t long_term_in_days) const {
+  UnsoldInventory res;
+  auto now = Datetime::Now();
 
   for (auto& a : basis_) {
-    res.first += a.amount;
-    res.second += a.cost_in_usd;
+    bool long_term = (a.date.AbsDiffInSeconds(now) > (long_term_in_days * 24 * 3600));
+
+    (long_term ? res.long_term : res.short_term).amount += a.amount;
+    (long_term ? res.long_term : res.short_term).cost_in_usd += a.cost_in_usd;
+
+    res.total.amount += a.amount;
+    res.total.cost_in_usd += a.cost_in_usd;
   }
 
   return res;

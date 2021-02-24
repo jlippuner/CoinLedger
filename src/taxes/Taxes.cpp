@@ -730,7 +730,7 @@ void Taxes::PrintSpending(const File& file, Datetime from) const {
 }
 
 void Taxes::PrintCapitalGainsLosses(const File& file, size_t long_term_in_days,
-    bool LIFO, Datetime from, bool fuse) const {
+    bool LIFO, Datetime from, bool adjust_for_wash_sale, bool fuse) const {
   std::vector<GainLoss> short_term;
   std::vector<GainLoss> long_term;
 
@@ -747,20 +747,58 @@ void Taxes::PrintCapitalGainsLosses(const File& file, size_t long_term_in_days,
     }
 
     inventories.insert({{coin_id, Inventory(LIFO)}});
+    std::vector<GainLoss> gains;
 
     for (auto& e : it.second) {
       if ((e.type == EventType::MiningIncome) ||
           (e.type == EventType::OtherIncome) ||
           (e.type == EventType::TradeIncome) ||
           (e.type == EventType::TradeBuy)) {
-        InventoryItem new_inv(e.date, e.amount, e.amount_usd);
+        // check for wash sale
+        Amount wash_sale(0);
+        if (adjust_for_wash_sale) {
+          Amount remain = e.amount;
+
+          // sort gains chronologically
+          std::sort(gains.begin(), gains.end(),
+              [](const GainLoss& a, const GainLoss& b) {
+                return a.disposed < b.disposed;
+              });
+
+          for (auto itr = gains.rbegin(); itr != gains.rend(); ++itr) {
+            size_t diff_in_seconds = e.date.AbsDiffInSeconds(itr->disposed);
+            if (diff_in_seconds <= 30 * 24 * 3600) {
+              // we have a potential wash sale
+              Amount loss = itr->cost - itr->proceeds - itr->wash_sale_loss;
+              if ((loss > 0) && (itr->unwashed_amount > 0)) {
+                // actual wash sale
+                auto washed_amount = std::min(remain, itr->unwashed_amount);
+
+                Amount new_wash_sale =
+                    (loss * washed_amount) / itr->unwashed_amount;
+
+                itr->wash_sale_loss += new_wash_sale;
+                wash_sale += new_wash_sale;
+
+                itr->unwashed_amount -= washed_amount;
+                remain -= washed_amount;
+              }
+            } else {
+              // no wash sale and other acquisitions were even earlier
+              break;
+            }
+
+            if (remain == 0) break;  // we're done
+          }
+        }
+
+        InventoryItem new_inv(e.date, e.amount, e.amount_usd + wash_sale);
         inventories.at(coin_id).Acquire(new_inv);
       } else if ((e.type == EventType::SpentGeneral) ||
                  (e.type == EventType::SpentTransactionFee) ||
                  (e.type == EventType::SpentTradingFee) ||
                  (e.type == EventType::TradeSell)) {
         auto disp = inventories.at(coin_id).Dispose(e.amount);
-        std::vector<GainLoss> gains;
 
         if (disp.size() == 0) {
           throw std::runtime_error("Got 0 disposals");
@@ -777,16 +815,16 @@ void Taxes::PrintCapitalGainsLosses(const File& file, size_t long_term_in_days,
                 e.date, this_proceed, d.cost_in_usd));
           }
         }
-
-        for (auto& g : gains) {
-          size_t holding_period_in_seconds =
-              g.acquired.AbsDiffInSeconds(g.disposed);
-          if (holding_period_in_seconds > (long_term_in_days * 24 * 3600))
-            long_term.push_back(g);
-          else
-            short_term.push_back(g);
-        }
       }
+    }
+
+    for (auto& g : gains) {
+      size_t holding_period_in_seconds =
+          g.acquired.AbsDiffInSeconds(g.disposed);
+      if (holding_period_in_seconds > (long_term_in_days * 24 * 3600))
+        long_term.push_back(g);
+      else
+        short_term.push_back(g);
     }
   }
 
@@ -800,35 +838,25 @@ void Taxes::PrintCapitalGainsLosses(const File& file, size_t long_term_in_days,
   PrintGainLoss(&long_term, fuse, from);
   printf("\n\n");
 
-  printf("Unrealized Gains and Losses\n");
-  printf("===========================\n");
-  printf("%34s  %28s  %28s  %28s\n", "Unsold Asset", "Net Cost (USD)",
-      "Current Value (USD)", "Unrealized Profit/Loss (USD)");
-
   auto prices = PriceSource::GetUSDPrices();
-  Amount total_profit(0);
 
+  std::map<std::string, UnsoldInventory> unsold;
   for (auto& it : inventories) {
-    auto coin = file.GetCoin(it.first);
-
-    auto unsold = it.second.Unsold();
-    auto amount = unsold.first;
-    if (amount == 0) continue;
-    auto cost = unsold.second;
-    auto value = amount * prices.at(coin->Id());
-    auto profit = value - cost;
-    total_profit += profit;
-    printf("%28s %5s  %28s  %28s  %28s\n", amount.ToStr().c_str(),
-        coin->Symbol().c_str(), cost.ToStr().c_str(), value.ToStr().c_str(),
-        profit.ToStr().c_str());
+    unsold.insert({it.first, it.second.Unsold(long_term_in_days)});
   }
-  printf("\nTotal Profit/Loss: %28s USD\n", total_profit.ToStr().c_str());
+
+  PrintUnrealizedGainLoss(unsold, UnsoldType::ShortTerm, prices, file);
+  printf("\n\n");
+  PrintUnrealizedGainLoss(unsold, UnsoldType::LongTerm, prices, file);
+  printf("\n\n");
+  PrintUnrealizedGainLoss(unsold, UnsoldType::Total, prices, file);
 }
 
 void Taxes::PrintGainLoss(
     std::vector<GainLoss>* gains, bool fuse, Datetime from) const {
-  printf("%34s  %10s  %10s  %28s  %28s  %28s\n", "Description", "Acquired",
-      "Disposed", "Net Proceeds (USD)", "Net Cost (USD)", "Profit/Loss (USD)");
+  printf("%34s  %10s  %10s  %28s  %28s  %28s  %28s\n", "Description",
+      "Acquired", "Disposed", "Net Proceeds (USD)", "Net Cost (USD)",
+      "Wash Sale Loss (USD)", "Profit/Loss (USD)");
 
   Amount total_profit(0);
 
@@ -865,6 +893,7 @@ void Taxes::PrintGainLoss(
         prev.amount += g.amount;
         prev.proceeds += g.proceeds;
         prev.cost += g.cost;
+        prev.wash_sale_loss += g.wash_sale_loss;
         if (prev.acquired != g.acquired) prev.various_acquired_dates = true;
       } else {
         fused.push_back(g);
@@ -887,14 +916,52 @@ void Taxes::PrintGainLoss(
   for (auto& g : *fused_ptr) {
     if (g.disposed < from) continue;
 
-    Amount profit = g.proceeds - g.cost;
+    Amount profit = g.proceeds - g.cost + g.wash_sale_loss;
     total_profit += profit;
-    printf("%28s %5s  %10s  %10s  %28s  %28s  %28s\n", g.amount.ToStr().c_str(),
-        g.coin->Symbol().c_str(),
+
+    std::string wash_sale = "";
+    if (g.wash_sale_loss > 0) wash_sale = g.wash_sale_loss.ToStr() + " W";
+
+    printf("%28s %5s  %10s  %10s  %28s  %28s  %28s  %28s\n",
+        g.amount.ToStr().c_str(), g.coin->Symbol().c_str(),
         g.various_acquired_dates ? "VARIOUS"
                                  : g.acquired.ToStrDayUTCIRS().c_str(),
         g.disposed.ToStrDayUTCIRS().c_str(), g.proceeds.ToStr().c_str(),
-        g.cost.ToStr().c_str(), profit.ToStr().c_str());
+        g.cost.ToStr().c_str(), wash_sale.c_str(), profit.ToStr().c_str());
+  }
+  printf("\nTotal Profit/Loss: %28s USD\n", total_profit.ToStr().c_str());
+}
+
+void Taxes::PrintUnrealizedGainLoss(
+    const std::map<std::string, UnsoldInventory>& unsold, UnsoldType type,
+    const std::unordered_map<std::string, Amount>& prices,
+    const File& file) const {
+  printf("Unrealized Gains and Losses (%s)\n",
+      type == UnsoldType::LongTerm
+          ? "Long-Term"
+          : type == UnsoldType::ShortTerm ? "Short-Term" : "Total");
+  printf("=======================================\n");
+  printf("%34s  %28s  %28s  %28s\n", "Unsold Asset", "Net Cost (USD)",
+      "Current Value (USD)", "Unrealized Profit/Loss (USD)");
+
+  Amount total_profit(0);
+
+  for (auto& it : unsold) {
+    auto coin = file.GetCoin(it.first);
+
+    auto unsold = type == UnsoldType::LongTerm
+                      ? it.second.long_term
+                      : type == UnsoldType::ShortTerm ? it.second.short_term
+                                                      : it.second.total;
+    auto amount = unsold.amount;
+    if (amount == 0) continue;
+    auto cost = unsold.cost_in_usd;
+    auto value = amount * prices.at(coin->Id());
+    auto profit = value - cost;
+    total_profit += profit;
+    printf("%28s %5s  %28s  %28s  %28s\n", amount.ToStr().c_str(),
+        coin->Symbol().c_str(), cost.ToStr().c_str(), value.ToStr().c_str(),
+        profit.ToStr().c_str());
   }
   printf("\nTotal Profit/Loss: %28s USD\n", total_profit.ToStr().c_str());
 }

@@ -8,6 +8,7 @@
 #include "Coin.hpp"
 #include "Datetime.hpp"
 #include "File.hpp"
+#include "taxes/Inventory.hpp"
 
 enum class EventType {
   MiningIncome,
@@ -48,7 +49,9 @@ struct GainLoss {
         disposed(disposed),
         proceeds(proceeds),
         cost(cost),
-        various_acquired_dates(false) {
+        various_acquired_dates(false),
+        wash_sale_loss(0),
+        unwashed_amount(amount) {
     if (disposed < acquired)
       throw std::invalid_argument(
           "Cannot dispose of asset before acquiring it");
@@ -59,6 +62,9 @@ struct GainLoss {
   Datetime acquired, disposed;
   Amount proceeds, cost;
   bool various_acquired_dates;
+
+  Amount wash_sale_loss;
+  Amount unwashed_amount;
 };
 
 class Taxes {
@@ -74,7 +80,7 @@ class Taxes {
       Accnt ecr20_account, Accnt exchanges, Accnt equity, Accnt expenses,
       Accnt expense_mining_fees, Accnt expense_trading_fees,
       Accnt expense_transaction_fees, Accnt income_other, Accnt income_mining,
-      Accnt income_trade, const std::vector<std::string> &ignore_txns);
+      Accnt income_trade, const std::vector<std::string>& ignore_txns);
 
   // print events after from datetime
   void PrintEvents(const File& file, EventType type, Datetime from) const;
@@ -90,16 +96,23 @@ class Taxes {
   }
 
   void PrintCapitalGainsLosses(const File& file, size_t long_term_in_days,
-      bool LIFO, Datetime from, bool fuse = true) const;
+      bool LIFO, Datetime from, bool adjust_for_wash_sale,
+      bool fuse = true) const;
   void PrintCapitalGainsLosses(const File& file, size_t long_term_in_days,
-      bool LIFO, bool fuse = true) const {
-    PrintCapitalGainsLosses(
-        file, long_term_in_days, LIFO, Datetime::Earliest(), fuse);
+      bool LIFO, bool adjust_for_wash_sale, bool fuse = true) const {
+    PrintCapitalGainsLosses(file, long_term_in_days, LIFO, Datetime::Earliest(),
+        adjust_for_wash_sale, fuse);
   }
 
  private:
   void PrintGainLoss(
       std::vector<GainLoss>* gains, bool fuse, Datetime from) const;
+
+  enum class UnsoldType { LongTerm, ShortTerm, Total };
+  void PrintUnrealizedGainLoss(
+      const std::map<std::string, UnsoldInventory>& unsold, UnsoldType type,
+      const std::unordered_map<std::string, Amount>& prices,
+      const File& file) const;
 
   std::map<std::string, std::vector<TaxEvent>> events_;
 };

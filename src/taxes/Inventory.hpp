@@ -15,9 +15,17 @@ struct InventoryItem {
   Amount cost_in_usd;
 };
 
+struct UnsoldInventory {
+  struct Unsold {
+    Amount amount, cost_in_usd;
+  };
+
+  Unsold short_term, long_term, total;
+};
+
 class Inventory {
  public:
-  Inventory(bool LIFO) : LIFO_(LIFO) {} 
+  Inventory(bool LIFO) : LIFO_(LIFO) {}
 
   void Acquire(InventoryItem item);
 
@@ -25,7 +33,7 @@ class Inventory {
   std::vector<InventoryItem> Dispose(Amount amount);
 
   // get the total unsold amount and cost
-  std::pair<Amount, Amount> Unsold() const;
+  UnsoldInventory Unsold(size_t long_term_in_days) const;
 
  private:
   // true if this is a LIFO inventory, false if it's FIFO
